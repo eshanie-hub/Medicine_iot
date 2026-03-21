@@ -79,7 +79,7 @@ export default function Login() {
           <div className="input-group">
             <label>User ID</label>
             <div className="input-wrapper">
-              <input type="text" placeholder="e.g. d-1234" 
+              <input type="text" placeholder="e.g. d1234" 
                 onChange={(e) => setFormData({...formData, userId: e.target.value})} required />
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { useNavigate } from 'react-router-dom';
+
 
 const navStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
@@ -24,13 +25,19 @@ const navStyles = `
 
   .logo-circle {
     background: white;
-    width: 35px;
-    height: 35px;
+    width: 40px; /* Slightly larger to showcase the logo */
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #1e3a6e;
+    overflow: hidden; /* Ensures image doesn't bleed past the circle */
+  }
+
+  .logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Maintains aspect ratio while filling the circle */
   }
 
   .brand-name {
@@ -57,11 +64,11 @@ const navStyles = `
 `;
 
 export default function Navbar() {
-  const navigate = useNavigate(); // 2. Initialize navigate
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Add any logout logic here (e.g., clearing localStorage/tokens)
-    navigate('/login'); // 3. Redirect to login route
+    // Add logout logic (e.g., localStorage.clear())
+    navigate('/login');
   };
 
   return (
@@ -70,14 +77,15 @@ export default function Navbar() {
       <nav className="nav-container">
         <div className="logo-section">
           <div className="logo-circle">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19,11.5H15.5V9.5H19V11.5Z" />
-            </svg>
+            <img 
+              src="/logo.png" 
+              alt="MediPORT Logo" 
+              className="logo-img" 
+            />
           </div>
           <span className="brand-name">MediPORT</span>
         </div>
         
-        {/* 4. Attach the click handler */}
         <button className="btn-logout" onClick={handleLogout}>
           Logout
         </button>
