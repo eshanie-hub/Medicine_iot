@@ -1,9 +1,13 @@
 import React from 'react';
 import Login from './pages/Login';
 
+
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Driver from './pages/Driver';
+import Report from './pages/Report';
+import System from './pages/System';
+
 
 function App() {
   return (
@@ -12,10 +16,13 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/driver" element={<Driver />} />
+        <Route path="/report" element={<Report />} />
+        <Route path="/system" element={<System />} />
       </Routes>
     </BrowserRouter>
   )
 };
 
 export default App;
+

@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const AccessLog = require('./mongodb/security'); 
 const securityRoutes = require('./routes/security'); 
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // API Routes
 app.use('/api/security', securityRoutes);
+app.use('/api/auth', authRoutes)
 
 // HiveMQ MQTT Connection 
 const client = mqtt.connect(process.env.MQTT_URL, {
@@ -26,8 +28,8 @@ const client = mqtt.connect(process.env.MQTT_URL, {
 
 client.on('connect', () => {
     console.log("Connected to HiveMQ Cloud");
-    client.subscribe('test/topic', (err) => {
-        if (!err) console.log("Subscribed to 'test/topic'");
+    client.subscribe('sensor/security', (err) => {
+        if (!err) console.log("Subscribed to 'sensor/security'");
     });
 });
 
@@ -35,7 +37,7 @@ client.on('message', async (topic, message) => {
     const data = JSON.parse(message.toString());
     
     // If you add a new sensor, you just check the topic here!
-    if (topic === 'test/topic') {
+    if (topic === 'sensor/security') {
         const newLog = new AccessLog(data);
         await newLog.save();
         console.log("💾 RFID Log Saved");

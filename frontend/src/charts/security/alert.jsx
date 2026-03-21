@@ -1,13 +1,3 @@
-import React from 'react'
-
-const alert = () => {
-  return (
-    <div>alert</div>
-  )
-}
-
-export default alert
-
 // import React, { useEffect, useState } from 'react';
 // import axios from 'axios';
 
@@ -31,14 +21,18 @@ export default alert
 //         hour12: true
 //       });
 //     } catch (e) {
-//       return timestamp; // Fallback to raw string if conversion fails
+//       return timestamp; 
 //     }
 //   };
 
 //   const fetchLogs = async () => {
 //     try {
 //       const response = await axios.get('http://localhost:5000/api/security');
-//       setLogs(response.data);
+//       // Sort logs to show the most recent at the top
+//       const sortedData = response.data.sort((a, b) => 
+//         new Date(b.receivedAt || b.timestamp) - new Date(a.receivedAt || a.timestamp)
+//       );
+//       setLogs(sortedData);
 //     } catch (err) {
 //       console.error("Backend not reachable. Ensure bridge.js is running.");
 //     }
@@ -49,6 +43,21 @@ export default alert
 //     const interval = setInterval(fetchLogs, 3000); 
 //     return () => clearInterval(interval);
 //   }, []);
+
+//   // Helper to render the correct status label and style
+//   const renderStatus = (status) => {
+//     const s = status ? status.toLowerCase() : "";
+    
+//     if (s.includes('granted') || s.includes('unlocked')) {
+//       return <span style={styles.textSuccess}>[ UNLOCKED ]</span>;
+//     } else if (s.includes('denied') || s.includes('unauthorized')) {
+//       return <span style={styles.textDanger}>[ DENIED ]</span>;
+//     } else if (s.includes('locked')) {
+//       return <span style={styles.textWarning}>[ LOCKED ]</span>;
+//     } else {
+//       return <span style={styles.textDefault}>[ {status.toUpperCase()} ]</span>;
+//     }
+//   };
 
 //   return (
 //     <div style={styles.container}>
@@ -67,13 +76,9 @@ export default alert
 //         {logs.map((log) => (
 //           <div key={log._id} style={styles.row}>
 //             <div style={styles.statusCol}>
-//               {log.status === 'Granted' ? 
-//                 <span style={styles.textSuccess}>[ GRANTED ]</span> : 
-//                 <span style={styles.textDanger}>[ DENIED ]</span>
-//               }
+//               {renderStatus(log.status)}
 //             </div>
-//             <div style={styles.idCol}>{log.card_id}</div>
-//             {/* Using the Sri Lankan Time helper function here */}
+//             <div style={styles.idCol}>{log.card_id || "N/A"}</div>
 //             <div style={styles.timeCol}>
 //               {formatSLTime(log.receivedAt || log.timestamp)}
 //             </div>
@@ -127,6 +132,8 @@ export default alert
 //   },
 //   textSuccess: { color: '#4ade80', fontWeight: 'bold' },
 //   textDanger: { color: '#f87171', fontWeight: 'bold' },
+//   textWarning: { color: '#fbbf24', fontWeight: 'bold' }, // Added for "Locked" status
+//   textDefault: { color: '#94a3b8', fontWeight: 'bold' },
 //   timeCol: { color: '#94a3b8', fontSize: '13px' },
 //   idCol: { letterSpacing: '1px' },
 //   empty: { textAlign: 'center', padding: '40px', color: '#64748b' }
