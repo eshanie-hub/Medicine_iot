@@ -7,7 +7,7 @@ import Register from './pages/Register';
 import Driver from './pages/Driver';
 import Report from './pages/Report';
 import System from './pages/System';
-
+import Logs from './charts/security/Logs'
 
 function App() {
   return (
@@ -19,6 +19,7 @@ function App() {
         <Route path="/driver" element={<Driver />} />
         <Route path="/report" element={<Report />} />
         <Route path="/system" element={<System />} />
+        <Route path="/logs" element={<Logs />} />
       </Routes>
     </BrowserRouter>
   )

@@ -1,5 +1,6 @@
 import React from 'react';
 import Navbar from '../assets/Navigation';
+import Logs from '../charts/security/Logs'
 
 const systemStyles = `
   .system-root {
@@ -63,14 +64,7 @@ export default function System() {
 
         <div className="bottom-split">
           <div className="panel">
-            <h3>Logs</h3>
-            <table className="log-table">
-              <tbody>
-                {Array(6).fill(0).map((_, i) => (
-                  <tr key={i}><td>2 Feb 2.00pm</td><td>RF2234</td><td>Locked open</td></tr>
-                ))}
-              </tbody>
-            </table>
+            <Logs/>
           </div>
           <div className="panel">
             <h3>Sensor Live status line chart</h3>
