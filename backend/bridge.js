@@ -6,8 +6,6 @@ const cors = require('cors');
 const AccessLog = require('./mongodb/security'); 
 const securityRoutes = require('./routes/security'); 
 const authRoutes = require('./routes/authRoutes');
-const MotionLog = require('./mongodb/motion');
-const motionRoutes = require('./routes/motion');
 
 const app = express();
 app.use(cors());
@@ -21,7 +19,6 @@ mongoose.connect(process.env.MONGO_URI)
 // API Routes
 app.use('/api/security', securityRoutes);
 app.use('/api/auth', authRoutes)
-app.use('/api/motion',motionRoutes)
 
 // HiveMQ MQTT Connection 
 const client = mqtt.connect(process.env.MQTT_URL, {
@@ -34,9 +31,6 @@ client.on('connect', () => {
     client.subscribe('sensor/security', (err) => {
         if (!err) console.log("Subscribed to 'sensor/security'");
     });
-    client.subscribe('sensor/motion', (err) => {
-        if (!err) console.log("Subscribed to 'sensor/motion'");
-    });
 });
 
 client.on('message', async (topic, message) => {
@@ -46,14 +40,8 @@ client.on('message', async (topic, message) => {
     if (topic === 'sensor/security') {
         const newLog = new AccessLog(data);
         await newLog.save();
-        console.log(" RFID Log Saved");
+        console.log("💾 RFID Log Saved");
     }
-    else if (topic === 'sensor/motion') {
-            
-            const newMotionLog = new MotionLog(data); 
-            await newMotionLog.save();
-            console.log(" Vibration Data Saved");
-        }
 });
 
-app.listen(5000, () => console.log(" Server on port 5000"));
+app.listen(5000, () => console.log("🚀 Server on port 5000"));
