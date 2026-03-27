@@ -1,5 +1,6 @@
 import React from 'react';
 import Navbar from '../assets/Navigation';
+import LastAlert from '../charts/motion/Last_Alert';
 
 const pageStyles = `
   .dashboard-root {
@@ -32,6 +33,11 @@ const pageStyles = `
   .status-value { font-size: 1.4rem; font-weight: 700; color: #1e3a6e; }
   .status-sub { font-size: 0.75rem; color: #a0aec0; }
   .fan-btn { font-size: 0.7rem; color: #3182ce; margin-top: 5px; cursor: pointer; }
+
+  /* Vibration Status Colors */
+  .status-critical { color: #e53e3e !important; font-weight: 800; }
+  .status-warning { color: #dd6b20 !important; }
+  .status-stable { color: #3182ce!important; font-weight: 700; }
 
   .map-container {
     flex: 1;
@@ -71,10 +77,13 @@ export default function Driver() {
             <span className="status-sub">5.2 °c</span>
             <span className="fan-btn">❄️ OFF</span>
           </div>
+          
+          {/*motion card*/}
           <div className="sidebar-card">
-            <span className="status-label">Vibration</span>
-            <span className="status-value">Normal</span>
+            <LastAlert />
           </div>
+            
+          
           <div className="sidebar-card">
             <span className="status-label">Current Humidity</span>
             <span className="status-value" style={{color: '#3182ce'}}>Safe</span>
