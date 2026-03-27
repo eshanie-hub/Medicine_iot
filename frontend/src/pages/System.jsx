@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '../assets/Navigation';
-import Logs from '../charts/security/Logs';
+import SecurityLogs from '../charts/security/Logs';
 import LastAlert from '../charts/motion/Last_Alert';
+import MotionLogs from '../charts/motion/Logs';
 
 const systemStyles = `
   .system-root {
@@ -56,9 +57,54 @@ const systemStyles = `
 
   .log-table { width: 100%; border-collapse: collapse; text-align: left; }
   .log-table td { padding: 10px 5px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+
+  .tab-header {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 10px;
+  }
+
+  .tab-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #f8fafc;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: #2d82cc;
+    color: white;
+  }
+
+  .panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #1e3a6e;
+  }
 `;
 
 export default function System() {
+
+
+  //  Initialize state to track active log
+  const [activeLog, setActiveLog] = useState('Security');
+
+  // render the correct component
+  const renderLogTable = () => {
+    switch(activeLog) {
+      case 'Security': return <SecurityLogs />;
+      case 'Motion': return <MotionLogs />;
+      
+    }
+  };
+
   return (
     <>
       <style>{systemStyles}</style>
@@ -99,7 +145,21 @@ export default function System() {
 
         <div className="bottom-split">
           <div className="panel">
-            <Logs/>
+            {/* 3. Tab Navigation */}
+            <div className="tab-header">
+              {['Security', 'Motion','Temperature','Humidity'].map((type) => (
+                <button 
+                  key={type}
+                  className={`tab-btn ${activeLog === type ? 'active' : ''}`}
+                  onClick={() => setActiveLog(type)}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+            
+            {/* 4. Dynamic Log Content */}
+            {renderLogTable()}
           </div>
           <div className="panel">
             <h3>Sensor Live status line chart</h3>
