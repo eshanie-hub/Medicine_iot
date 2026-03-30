@@ -1,6 +1,7 @@
 import React from 'react';
 import Navbar from '../assets/Navigation';
 import LastAlert from '../charts/motion/Last_Alert';
+import LockStatusCard from '../charts/security/Last_Alert';
 
 const pageStyles = `
   .dashboard-root {
@@ -47,7 +48,7 @@ const pageStyles = `
     display: flex;
     flex-direction: column;
     text-align: center;
-  }
+  } 
 
   .map-wrapper {
     flex: 1;
@@ -67,9 +68,7 @@ export default function Driver() {
       <div className="dashboard-root">
         <aside className="sidebar">
           <div className="sidebar-card">
-            <span className="status-label">Security Lock</span>
-            <span className="status-value">Close</span>
-            <span className="status-sub">Opened 5 mins ago</span>
+            <LockStatusCard />
           </div>
           <div className="sidebar-card">
             <span className="status-label">Current Temperature</span>

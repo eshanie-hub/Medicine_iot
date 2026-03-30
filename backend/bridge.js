@@ -3,6 +3,9 @@ const mqtt = require('mqtt');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
+
 const AccessLog = require('./mongodb/security'); 
 const securityRoutes = require('./routes/security'); 
 const authRoutes = require('./routes/authRoutes');
@@ -10,6 +13,14 @@ const MotionLog = require('./mongodb/motion');
 const motionRoutes = require('./routes/motion');
 
 const app = express();
+const server = http.createServer(app); // Create the HTTP server
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Change this to your frontend URL in production
+        methods: ["GET", "POST"]
+    }
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -27,6 +38,15 @@ app.use('/api/motion',motionRoutes)
 const client = mqtt.connect(process.env.MQTT_URL, {
     username: process.env.MQTT_USER,
     password: process.env.MQTT_PASS
+});
+
+// WebSocket Connection Handler
+io.on('connection', (socket) => {
+    console.log(`New Web Client Connected: ${socket.id}`);
+    
+    socket.on('disconnect', () => {
+        console.log(' Client Disconnected');
+    });
 });
 
 client.on('connect', () => {
@@ -47,6 +67,13 @@ client.on('message', async (topic, message) => {
         const newLog = new AccessLog(data);
         await newLog.save();
         console.log(" RFID Log Saved");
+
+        // webSocket
+        io.emit('lockUpdate', {
+                status: data.status,
+                timestamp: new Date().toISOString(),
+                card_id: data.card_id
+            });
     }
     else if (topic === 'sensor/motion') {
             
@@ -55,5 +82,5 @@ client.on('message', async (topic, message) => {
             console.log(" Vibration Data Saved");
         }
 });
-
-app.listen(5000, () => console.log(" Server on port 5000"));
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

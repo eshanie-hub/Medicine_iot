@@ -3,6 +3,7 @@ import Navbar from '../assets/Navigation';
 import SecurityLogs from '../charts/security/Logs';
 import LastAlert from '../charts/motion/Last_Alert';
 import MotionLogs from '../charts/motion/Logs';
+import LockStatusCard from '../charts/security/Last_Alert';
 
 const systemStyles = `
   .system-root {
@@ -114,8 +115,7 @@ export default function System() {
           
           {/* Card 1: Security */}
           <div className="sensor-box">
-            <span style={{fontSize: '0.8rem', color: '#64748b'}}>Security Lock</span>
-            <span style={{fontSize: '1.3rem', fontWeight: 700, color: '#2d82cc'}}>Active</span>
+            <LockStatusCard />
           </div>
 
           {/* Card 2: Temperature */}
