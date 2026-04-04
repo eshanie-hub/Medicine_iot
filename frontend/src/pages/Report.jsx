@@ -1,5 +1,6 @@
 import React from 'react';
 import Navbar from '../assets/Navigation';
+import TempReport from '../charts/temperature/TempReport';
 
 const reportStyles = `
   .report-root {
@@ -28,7 +29,8 @@ const reportStyles = `
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     display: flex;
     flex-direction: column;
-    min-height: 0; /* Prevents grid blowouts */
+    min-height: 0;
+    overflow: hidden;
   }
 
   .card-title {
@@ -99,7 +101,7 @@ const reportStyles = `
   }
 
   .gauge-svg { width: 180px; height: auto; }
-  
+
   .risk-value {
     font-size: 2.2rem;
     font-weight: 700;
@@ -128,7 +130,7 @@ export default function Report() {
       <Navbar />
       <div className="report-root">
         <div className="report-grid">
-          
+
           {/* 1. Safety Anomalies */}
           <div className="report-card">
             <h2 className="card-title">Safety anomalies detected</h2>
@@ -145,10 +147,10 @@ export default function Report() {
                 <tr>
                   <td className="table-cell">High access ▼</td>
                   <td className="table-cell">RF2234</td>
-                  <td className="table-cell">2 Feb<br/>2:00pm</td>
+                  <td className="table-cell">2 Feb<br />2:00pm</td>
                   <td className="table-cell">
                     <div className="detail-box">
-                      <strong>2</strong> accesses<br/>Avg: <strong>15 Min</strong>
+                      <strong>2</strong> accesses<br />Avg: <strong>15 Min</strong>
                     </div>
                   </td>
                 </tr>
@@ -158,7 +160,7 @@ export default function Report() {
                   <td className="table-cell">2 Feb</td>
                   <td className="table-cell">
                     <div className="detail-box">
-                      <strong>1</strong> access<br/>Duration: <strong>15 Min</strong>
+                      <strong>1</strong> access<br />Duration: <strong>15 Min</strong>
                     </div>
                   </td>
                 </tr>
@@ -170,16 +172,17 @@ export default function Report() {
           <div className="report-card">
             <h2 className="card-title">Humidity Trend</h2>
             <div className="chart-container">
-              <img src="https://i.imgur.com/GisLhOQ.png" className="chart-img" alt="Humidity Graph" />
+              <img
+                src="https://i.imgur.com/GisLhOQ.png"
+                className="chart-img"
+                alt="Humidity Graph"
+              />
             </div>
           </div>
 
           {/* 3. Temperature Trend */}
           <div className="report-card">
-            <h2 className="card-title">Temperature Trend</h2>
-            <div className="chart-container">
-              <img src="https://i.imgur.com/zV8Q8Xl.png" className="chart-img" alt="Temp Graph" />
-            </div>
+            <TempReport />
           </div>
 
           {/* 4. Transport Risk Level */}
@@ -193,8 +196,8 @@ export default function Report() {
               <div className="risk-value">42%</div>
               <div className="risk-status">Moderate Risk</div>
               <div className="risk-footer">
-                Final Medicine Box Condition: <br/>
-                <strong>92% <span style={{color: '#2d82cc'}}>Safe</span></strong>
+                Final Medicine Box Condition: <br />
+                <strong>92% <span style={{ color: '#2d82cc' }}>Safe</span></strong>
               </div>
             </div>
           </div>
