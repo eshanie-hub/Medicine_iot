@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 // 1. Define the WebSocket URL correctly
 // Ensure this matches your Node.js server port exactly (5000)
 const socket = io('http://localhost:5000', {
-  transports: ['websocket'], // Forces WebSocket for faster, more stable connection
+  transports: ['websocket'], 
   autoConnect: true
 });
 

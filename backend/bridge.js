@@ -31,6 +31,7 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+
 // MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
@@ -51,6 +52,8 @@ const client = mqtt.connect(process.env.MQTT_URL, {
   username: process.env.MQTT_USER,
   password: process.env.MQTT_PASS,
 });
+
+let sessionTotalEnergy = 0;
 
 // WebSocket Connection Handler
 io.on("connection", (socket) => {
@@ -99,11 +102,23 @@ client.on("message", async (topic, message) => {
       });
     } 
     
-    else if (topic === "sensor/motion") {
-      const newMotionLog = new MotionLog(data);
-      await newMotionLog.save();
-      console.log("Vibration Data Saved");
-    } 
+    else if (topic === 'sensor/motion') {
+            sessionTotalEnergy += data.net_g || 0;
+
+            const motionData = {
+                ...data,
+                cumulative_energy: sessionTotalEnergy,
+                time: new Date()
+            };
+                
+            // Save to DB
+            const newMotionLog = new MotionLog(motionData); 
+            await newMotionLog.save();
+
+            io.emit('vibrationData', motionData);
+
+            console.log(`Vibration Saved & Emitted (Total Stress: ${sessionTotalEnergy.toFixed(2)})`);
+        }
     
     else if (topic === "sensor/temperature") {
       const activeRoute = await RouteSession.findOne({ status: "ACTIVE" }).sort({
@@ -142,21 +157,9 @@ client.on("message", async (topic, message) => {
         route_id: activeRoute ? activeRoute.route_id : null,
       });
     }
-    else if (topic === 'sensor/motion') {
-            sessionTotalEnergy += data.net_g || 0;
-
-            const motionData = {
-                    ...data,
-                    cumulative_energy: sessionTotalEnergy,
-                    time: new Date() // Ensure we have a timestamp
-                };
-                
-            const newMotionLog = new MotionLog(data); 
-            await newMotionLog.save();
-            io.emit('vibrationData', motionData);
-
-            console.log(`Vibration Saved & Emitted (Total Stress: ${sessionTotalEnergy.toFixed(2)})`);
-        }
+  } catch (error) {
+    console.error("Error processing MQTT message:", error.message);
+  }
 });
 
 const PORT = process.env.PORT || 5000;
