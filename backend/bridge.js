@@ -3,6 +3,8 @@ const mqtt = require('mqtt');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const AccessLog = require('./mongodb/security'); 
 const securityRoutes = require('./routes/security'); 
 const authRoutes = require('./routes/authRoutes');
@@ -10,9 +12,16 @@ const MotionLog = require('./mongodb/motion');
 const motionRoutes = require('./routes/motion');
 
 const app = express();
+const server = http.createServer(app); // Create the HTTP server
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
 app.use(cors());
 app.use(express.json());
-
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("Connected to MongoDB Atlas"))
@@ -29,6 +38,13 @@ const client = mqtt.connect(process.env.MQTT_URL, {
     password: process.env.MQTT_PASS
 });
 
+io.on("connection", (socket) => {
+  console.log(`New Web Client Connected: ${socket.id}`);
+
+  socket.on("disconnect", () => {
+    console.log("Client Disconnected");
+  });
+});
 client.on('connect', () => {
     console.log("Connected to HiveMQ Cloud");
     client.subscribe('sensor/security', (err) => {
@@ -38,7 +54,7 @@ client.on('connect', () => {
         if (!err) console.log("Subscribed to 'sensor/motion'");
     });
 });
-
+let sessionTotalEnergy = 0;
 client.on('message', async (topic, message) => {
     const data = JSON.parse(message.toString());
     
@@ -49,10 +65,19 @@ client.on('message', async (topic, message) => {
         console.log(" RFID Log Saved");
     }
     else if (topic === 'sensor/motion') {
-            
+            sessionTotalEnergy += data.net_g || 0;
+
+            const motionData = {
+                    ...data,
+                    cumulative_energy: sessionTotalEnergy,
+                    time: new Date() // Ensure we have a timestamp
+                };
+                
             const newMotionLog = new MotionLog(data); 
             await newMotionLog.save();
-            console.log(" Vibration Data Saved");
+            io.emit('vibrationData', motionData);
+
+            console.log(`Vibration Saved & Emitted (Total Stress: ${sessionTotalEnergy.toFixed(2)})`);
         }
 });
 
