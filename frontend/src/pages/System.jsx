@@ -3,6 +3,12 @@ import Navbar from '../assets/Navigation';
 import SecurityLogs from '../charts/security/Logs';
 import LastAlert from '../charts/motion/Last_Alert';
 import MotionLogs from '../charts/motion/Logs';
+import LockStatusCard from '../charts/security/Last_Alert';
+import TempLastAlert from '../charts/temperature/Last_Alert';
+import HumLastAlert from '../charts/humidity/Last_Alert';
+import TemperatureLogs from '../charts/temperature/Logs';
+import HumidityLogs from '../charts/humidity/Logs';
+import Chatbot from './Chatbot';
 
 const systemStyles = `
   .system-root {
@@ -101,6 +107,10 @@ export default function System() {
     switch(activeLog) {
       case 'Security': return <SecurityLogs />;
       case 'Motion': return <MotionLogs />;
+      case 'Temperature': return <TemperatureLogs />;
+      case 'Humidity': return <HumidityLogs />;
+      default: return null;
+      
       
     }
   };
@@ -114,14 +124,12 @@ export default function System() {
           
           {/* Card 1: Security */}
           <div className="sensor-box">
-            <span style={{fontSize: '0.8rem', color: '#64748b'}}>Security Lock</span>
-            <span style={{fontSize: '1.3rem', fontWeight: 700, color: '#2d82cc'}}>Active</span>
+            <LockStatusCard />
           </div>
 
           {/* Card 2: Temperature */}
           <div className="sensor-box">
-            <span style={{fontSize: '0.8rem', color: '#64748b'}}>Temperature</span>
-            <span style={{fontSize: '1.3rem', fontWeight: 700, color: '#2d82cc'}}>Active</span>
+            <TempLastAlert />
           </div>
 
           {/* Card 3: Vibration  */}
@@ -131,8 +139,7 @@ export default function System() {
 
           {/* Card 4: Humidity */}
           <div className="sensor-box">
-            <span style={{fontSize: '0.8rem', color: '#64748b'}}>Humidity</span>
-            <span style={{fontSize: '1.3rem', fontWeight: 700, color: '#2d82cc'}}>Active</span>
+            <HumLastAlert />
           </div>
 
           {/* Card 5: Wifi */}
@@ -166,6 +173,7 @@ export default function System() {
             <img src="https://i.imgur.com/GisLhOQ.png" style={{width: '100%', borderRadius: '10px'}} alt="Chart" />
           </div>
         </div>
+        <Chatbot />
       </div>
     </>
   );

@@ -7,7 +7,8 @@ import Register from './pages/Register';
 import Driver from './pages/Driver';
 import Report from './pages/Report';
 import System from './pages/System';
-import Logs from './charts/security/Logs'
+import Chatbot from './pages/Chatbot';
+
 
 function App() {
   return (
@@ -19,7 +20,7 @@ function App() {
         <Route path="/driver" element={<Driver />} />
         <Route path="/report" element={<Report />} />
         <Route path="/system" element={<System />} />
-        <Route path="/logs" element={<Logs />} />
+       <Route path="/chatbot" element={<Chatbot />} />
       </Routes>
     </BrowserRouter>
   )
