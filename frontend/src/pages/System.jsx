@@ -4,6 +4,7 @@ import SecurityLogs from '../charts/security/Logs';
 import LastAlert from '../charts/motion/Last_Alert';
 import MotionLogs from '../charts/motion/Logs';
 import LockStatusCard from '../charts/security/Last_Alert';
+import Chatbot from './Chatbot';
 
 const systemStyles = `
   .system-root {
@@ -166,6 +167,7 @@ export default function System() {
             <img src="https://i.imgur.com/GisLhOQ.png" style={{width: '100%', borderRadius: '10px'}} alt="Chart" />
           </div>
         </div>
+        <Chatbot />
       </div>
     </>
   );

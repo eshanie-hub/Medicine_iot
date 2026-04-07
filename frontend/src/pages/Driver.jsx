@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from '../assets/Navigation';
 import LastAlert from '../charts/motion/Last_Alert';
 import LockStatusCard from '../charts/security/Last_Alert';
+import Chatbot from './Chatbot';
 
 const pageStyles = `
   .dashboard-root {
@@ -101,6 +102,7 @@ export default function Driver() {
             <img src="https://i.imgur.com/GisLhOQ.png" alt="Route Map" />
           </div>
         </main>
+        <Chatbot />
       </div>
     </>
   );

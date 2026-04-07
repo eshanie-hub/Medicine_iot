@@ -1,5 +1,6 @@
 import React from 'react';
 import Navbar from '../assets/Navigation';
+import Chatbot from './Chatbot';
 
 const reportStyles = `
   .report-root {
@@ -200,6 +201,7 @@ export default function Report() {
           </div>
 
         </div>
+        <Chatbot />
       </div>
     </>
   );

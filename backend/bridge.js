@@ -11,6 +11,7 @@ const securityRoutes = require('./routes/security');
 const authRoutes = require('./routes/authRoutes');
 const MotionLog = require('./mongodb/motion');
 const motionRoutes = require('./routes/motion');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 const server = http.createServer(app); // Create the HTTP server
@@ -33,6 +34,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/security', securityRoutes);
 app.use('/api/auth', authRoutes)
 app.use('/api/motion',motionRoutes)
+app.use('/api/chat', chatRoutes);
 
 // HiveMQ MQTT Connection 
 const client = mqtt.connect(process.env.MQTT_URL, {
