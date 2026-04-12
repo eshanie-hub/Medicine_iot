@@ -6,37 +6,35 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 
+// Models
 const AccessLog = require("./mongodb/security");
-const securityRoutes = require("./routes/security");
-const authRoutes = require("./routes/authRoutes");
 const MotionLog = require("./mongodb/motion");
-const motionRoutes = require("./routes/motion");
-const RouteSession = require("./mongodb/routeSession");
-
 const TemperatureLog = require("./mongodb/temperature");
 const HumidityLog = require("./mongodb/humidity");
+const RouteSession = require("./mongodb/routeSession");
+
+// Routes
+const securityRoutes = require("./routes/security");
+const authRoutes = require("./routes/authRoutes");
+const motionRoutes = require("./routes/motion");
 const temperatureRoutes = require("./routes/temperature");
 const humidityRoutes = require("./routes/humidity");
 const routeSessionRoutes = require("./routes/routeSession");
 const chatRoutes = require('./routes/chat');
 
 const app = express();
-const server = http.createServer(app); // Create the HTTP server
+const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
+    cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
 app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("Connected to MongoDB Atlas"))
-  .catch((err) => console.error("mongoDB Connection Error:", err));
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("✅ Connected to MongoDB Atlas"))
+    .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
 // API Routes
 app.use("/api/security", securityRoutes);
@@ -49,103 +47,80 @@ app.use('/api/chat', chatRoutes);
 
 // HiveMQ MQTT Connection 
 const client = mqtt.connect(process.env.MQTT_URL, {
-  username: process.env.MQTT_USER,
-  password: process.env.MQTT_PASS,
-});
-
-// WebSocket Connection Handler
-io.on("connection", (socket) => {
-  console.log(`New Web Client Connected: ${socket.id}`);
-
-  socket.on("disconnect", () => {
-    console.log("Client Disconnected");
-  });
+    username: process.env.MQTT_USER,
+    password: process.env.MQTT_PASS,
 });
 
 client.on("connect", () => {
-  console.log("Connected to HiveMQ Cloud");
+    console.log("📡 Connected to HiveMQ Cloud");
+    client.subscribe("sensor/security");
+    client.subscribe("sensor/motion");
+    client.subscribe("sensor/temperature");
+    client.subscribe("sensor/humidity");
+    client.subscribe("sensor/lock_request");
+});
 
-  client.subscribe("sensor/security", (err) => {
-    if (!err) console.log("Subscribed to 'sensor/security'");
-  });
+// WebSocket Handler
+io.on("connection", (socket) => {
+    console.log(`🔌 New Web Client: ${socket.id}`);
 
-  client.subscribe("sensor/motion", (err) => {
-    if (!err) console.log("Subscribed to 'sensor/motion'");
-  });
+    // Receive "YES" from React Frontend and send to ESP32
+    socket.on("uiLockResponse", (response) => {
+        if (response === "yes") {
+            console.log("➡️ UI Command: Sending LOCK to ESP32");
+            client.publish("sensor/command", "lock");
+        }
+    });
 
-  client.subscribe("sensor/temperature", (err) => {
-    if (!err) console.log("Subscribed to 'sensor/temperature'");
-  });
-
-  client.subscribe("sensor/humidity", (err) => {
-    if (!err) console.log("Subscribed to 'sensor/humidity'");
-  });
+    socket.on("disconnect", () => console.log("🔌 Client Disconnected"));
 });
 
 client.on("message", async (topic, message) => {
-  try {
-    const data = JSON.parse(message.toString());
+    try {
+        const data = JSON.parse(message.toString());
 
-    // If you add a new sensor, you just check the topic here!
-    if (topic === "sensor/security") {
-      const newLog = new AccessLog(data);
-      await newLog.save();
-      console.log("RFID Log Saved");
+        // 1. HANDLE LOCK REQUEST ALERT FROM ESP32
+        if (topic === "sensor/lock_request") {
+          const data = JSON.parse(message.toString());
+          
+          if (data.alert === "clear") {
+              io.emit("clearLockUI"); // New event to hide the popup
+          } else {
+              io.emit("requestLockUI", { message: "Lid is closed. Lock now?" });
+          }
+        }
 
-      // webSocket
-      io.emit("lockUpdate", {
-        status: data.status,
-        timestamp: new Date().toISOString(),
-        card_id: data.card_id,
-      });
-    } 
-    
-    else if (topic === "sensor/motion") {
-      const newMotionLog = new MotionLog(data);
-      await newMotionLog.save();
-      console.log("Vibration Data Saved");
-    } 
-    
-    else if (topic === "sensor/temperature") {
-      const activeRoute = await RouteSession.findOne({ status: "ACTIVE" }).sort({
-        createdAt: -1,
-      });
+        // 2. SECURITY / RFID LOGS
+        else if (topic === "sensor/security") {
+            const newLog = new AccessLog(data);
+            await newLog.save();
+            io.emit("lockUpdate", data);
+        }
 
-      const newTempLog = new TemperatureLog({
-        ...data,
-        route_id: activeRoute ? activeRoute.route_id : null,
-      });
+        // 3. MOTION / VIBRATION
+        else if (topic === "sensor/motion") {
+            const newMotionLog = new MotionLog(data);
+            await newMotionLog.save();
+            io.emit("motionUpdate", data);
+        }
 
-      await newTempLog.save();
-      
+        // 4. TEMPERATURE & HUMIDITY (with Route ID)
+        else if (topic === "sensor/temperature" || topic === "sensor/humidity") {
+            const activeRoute = await RouteSession.findOne({ status: "ACTIVE" }).sort({ createdAt: -1 });
+            const Model = topic === "sensor/temperature" ? TemperatureLog : HumidityLog;
+            const eventName = topic === "sensor/temperature" ? "temperatureUpdate" : "humidityUpdate";
 
-      io.emit("temperatureUpdate", {
-        ...data,
-        route_id: activeRoute ? activeRoute.route_id : null,
-      });
-    } 
-    
-    else if (topic === "sensor/humidity") {
-      const activeRoute = await RouteSession.findOne({ status: "ACTIVE" }).sort({
-        createdAt: -1,
-      });
+            const newLog = new Model({
+                ...data,
+                route_id: activeRoute ? activeRoute.route_id : null,
+            });
+            await newLog.save();
+            io.emit(eventName, newLog);
+        }
 
-      const newHumidityLog = new HumidityLog({
-        ...data,
-        route_id: activeRoute ? activeRoute.route_id : null,
-      });
-
-      await newHumidityLog.save();
-     
-
-      io.emit("humidityUpdate", {
-        ...data,
-        route_id: activeRoute ? activeRoute.route_id : null,
-      });
+    } catch (error) {
+        console.error("❌ MQTT processing error:", error.message);
     }
-  } catch (error) {
-    console.error("Error processing MQTT message:", error.message);
-  }
 });
 
 const PORT = process.env.PORT || 5000;

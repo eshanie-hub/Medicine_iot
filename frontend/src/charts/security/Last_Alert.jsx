@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+// Import outlined icons
+import { Lock, LockKeyholeOpen, AlertTriangle } from 'lucide-react';
 
 const socket = io('http://localhost:5000');
+
+const BRAND_BLUE = '#1e40af'; 
+const WARN_ORANGE = '#ea0c0c';
 
 export default function LockStatusCard() {
     const [status, setStatus] = useState("Loading...");
     const [lastTimeDisplay, setLastTimeDisplay] = useState("");
 
-    // Helper function to format time/date
     const formatTimestamp = (ts) => {
         if (!ts) return "";
         const eventDate = new Date(ts);
@@ -16,23 +20,17 @@ export default function LockStatusCard() {
         const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
 
         if (diffInMs > twentyFourHoursInMs) {
-            // More than 24 hours: Show Date (e.g., 25 Mar 2026)
             return eventDate.toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
+                day: 'numeric', month: 'short', year: 'numeric'
             });
         } else {
-            // Less than 24 hours: Show Time (e.g., 4:15 PM)
             return eventDate.toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+                hour: '2-digit', minute: '2-digit' 
             });
         }
     };
 
     useEffect(() => {
-        // Fetch current state on mount
         fetch('http://localhost:5000/api/security')
             .then(res => res.json())
             .then(data => {
@@ -44,10 +42,8 @@ export default function LockStatusCard() {
             })
             .catch(err => console.error("Fetch error:", err));
 
-        // Listen for live updates
         socket.on('lockUpdate', (data) => {
             setStatus(data.status);
-            // On a live update, it's always "now", so it will show time
             setLastTimeDisplay(formatTimestamp(new Date()));
         });
 
@@ -55,18 +51,37 @@ export default function LockStatusCard() {
     }, []);
 
     const isLocked = status === "Locked" || status === "Close";
+    const isDenied = status === "Denied" || status === "Access Denied";
+    
+    // Icon Selection Logic
+    const renderIcon = () => {
+        const iconProps = {
+            size: 32,
+            color: BRAND_BLUE, // All icons will be blue
+            strokeWidth: 2     // Ensures a clear outline
+        };
+
+        if (isDenied) return <AlertTriangle {...iconProps} />;
+        if (isLocked) return <Lock {...iconProps} />;
+        return <LockKeyholeOpen {...iconProps} />;
+    };
 
     return (
         <div style={styles.card}>
             <div>
                 <p style={styles.title}>Security Lock</p>
-                <h1 style={{...styles.status, color: isLocked ? '#1e40af' : '#ea580c'}}>
+                <h1 style={{
+                    ...styles.status, 
+                    color: isDenied ? WARN_ORANGE : (isLocked ? BRAND_BLUE : WARN_ORANGE)
+                }}>
                     {status}
                 </h1>
                 <p style={styles.time}>Updated: {lastTimeDisplay}</p>
             </div>
-            <div style={{...styles.iconBox}}>
-                <span style={{fontSize: '30px'}}>{isLocked ? '🔒' : '🔓'}</span>
+            
+            {/* Outline only - No background color */}
+            <div style={styles.iconContainer}>
+                {renderIcon()}
             </div>
         </div>
     );
@@ -74,13 +89,19 @@ export default function LockStatusCard() {
 
 const styles = {
     card: {
-        // background: 'white', padding: '20px', borderRadius: '15px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        // boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '20px',
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
         fontFamily: "'Poppins', sans-serif"
     },
     title: { margin: 0, color: '#64748b', fontSize: '0.9rem', fontWeight: '500' },
-    status: { fontSize: '1.4rem', fontWeight: '700', color: '#1e3a6e' },
+    status: { fontSize: '1.4rem', fontWeight: '700' },
     time: { margin: 0, color: '#94a3b8', fontSize: '0.8rem' },
-    iconBox: { padding: '15px', borderRadius: '12px' }
-}; 
+    iconContainer: { 
+        padding: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+        // Background removed as requested
+    }
+};

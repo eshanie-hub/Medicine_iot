@@ -21,6 +21,7 @@ function App() {
         <Route path="/report" element={<Report />} />
         <Route path="/system" element={<System />} />
        <Route path="/chatbot" element={<Chatbot />} />
+  
       </Routes>
     </BrowserRouter>
   )

@@ -5,6 +5,7 @@ const logSchema = new mongoose.Schema({
     timestamp: String,
     card_id: String,
     status: String,
+    anomaly: String,
     receivedAt: { type: Date, default: Date.now } // Extra server-side timestamp
 });
 

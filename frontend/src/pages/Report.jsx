@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from '../assets/Navigation';
 import TempReport from '../charts/temperature/TempReport';
 import Chatbot from './Chatbot';
+import Security from '../charts/security/Report';
 
 const reportStyles = `
   .report-root {
@@ -134,39 +135,7 @@ export default function Report() {
 
           {/* 1. Safety Anomalies */}
           <div className="report-card">
-            <h2 className="card-title">Safety anomalies detected</h2>
-            <table className="anomaly-table">
-              <thead>
-                <tr>
-                  <th className="table-header">Anomaly Type</th>
-                  <th className="table-header">Card ID</th>
-                  <th className="table-header">Date/Time</th>
-                  <th className="table-header">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="table-cell">High access ▼</td>
-                  <td className="table-cell">RF2234</td>
-                  <td className="table-cell">2 Feb<br />2:00pm</td>
-                  <td className="table-cell">
-                    <div className="detail-box">
-                      <strong>2</strong> accesses<br />Avg: <strong>15 Min</strong>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="table-cell">Unusual hours ▲</td>
-                  <td className="table-cell">RF2344</td>
-                  <td className="table-cell">2 Feb</td>
-                  <td className="table-cell">
-                    <div className="detail-box">
-                      <strong>1</strong> access<br />Duration: <strong>15 Min</strong>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <Security/>
           </div>
 
           {/* 2. Humidity Trend */}
