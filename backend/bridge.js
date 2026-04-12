@@ -51,6 +51,17 @@ const client = mqtt.connect(process.env.MQTT_URL, {
     password: process.env.MQTT_PASS,
 });
 
+let sessionTotalEnergy = 0;
+
+// WebSocket Connection Handler
+io.on("connection", (socket) => {
+  console.log(`New Web Client Connected: ${socket.id}`);
+
+  socket.on("disconnect", () => {
+    console.log("Client Disconnected");
+  });
+});
+
 client.on("connect", () => {
     console.log("📡 Connected to HiveMQ Cloud");
     client.subscribe("sensor/security");
