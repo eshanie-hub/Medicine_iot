@@ -66,10 +66,10 @@ export default function LastAlert() {
   const statusColor = isCritical
     ? "#dc2626"
     : isWarning
-    ? "#ea580c"
-    : isNormal
-    ? "#16a34a"
-    : "#475569";
+      ? "#ea580c"
+      : isNormal
+        ? "#3182ce"
+        : "#16a34a";
 
   return (
     <div style={styles.card}>
