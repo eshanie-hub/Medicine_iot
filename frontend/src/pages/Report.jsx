@@ -3,6 +3,7 @@ import Navbar from '../assets/Navigation';
 import TempReport from '../charts/temperature/TempReport';
 import Chatbot from './Chatbot';
 import Security from '../charts/security/Report';
+import MotionReport from '../charts/motion/MotionReport';
 
 const reportStyles = `
   .report-root {
@@ -157,19 +158,7 @@ export default function Report() {
 
           {/* 4. Transport Risk Level */}
           <div className="report-card">
-            <h2 className="card-title">Transport Risk Level</h2>
-            <div className="risk-content">
-              <svg className="gauge-svg" viewBox="0 0 100 50">
-                <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="10" />
-                <path d="M 10 50 A 40 40 0 0 1 65 18" fill="none" stroke="#2d82cc" strokeWidth="10" />
-              </svg>
-              <div className="risk-value">42%</div>
-              <div className="risk-status">Moderate Risk</div>
-              <div className="risk-footer">
-                Final Medicine Box Condition: <br />
-                <strong>92% <span style={{ color: '#2d82cc' }}>Safe</span></strong>
-              </div>
-            </div>
+            <MotionReport />
           </div>
 
         </div>

@@ -30,6 +30,17 @@ const pageStyles = `
   @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 100px; opacity: 1; } }
   .btn-yes { padding: 10px 25px; background: #16a34a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
   .btn-no { padding: 10px 25px; background: #64748b; color: white; border: none; border-radius: 8px; cursor: pointer; }
+
+  .status-label { font-size: 0.8rem; color: #64748b; }
+  .status-value { font-size: 1.4rem; font-weight: 700; color: #1e3a6e; }
+  .status-sub { font-size: 0.75rem; color: #a0aec0; }
+  
+      /* Vibration Status Colors */
+  .status-critical { color: #e53e3e !important; font-weight: 800; }
+  .status-warning { color: #dd6b20 !important; }
+  .status-stable { color: #3182ce!important; font-weight: 700; }
+
+  
 `;
 
 export default function Driver() {

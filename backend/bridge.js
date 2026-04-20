@@ -108,11 +108,33 @@ client.on("message", async (topic, message) => {
             io.emit("lockUpdate", data);
         }
 
-        // 3. MOTION / VIBRATION
+        // 3. MOTION
+                
         else if (topic === "sensor/motion") {
-            const newMotionLog = new MotionLog(data);
+            console.log("🏃 Motion Received from ESP32:", data);
+
+            // Get most recent saved record for exponential moving average
+            const lastLog = await MotionLog.findOne().sort({ createdAt: -1 });
+
+            // Exponential moving average
+            // Alpha 0.3 = new reading 30%, history 70%
+            const alpha = 0.3;
+            const lastRolling = lastLog ? lastLog.rolling_risk : data.risk_score;
+            const rollingRisk = Math.round((alpha * data.risk_score) + ((1 - alpha) * lastRolling));
+
+            const newMotionLog = new MotionLog({
+                ...data,
+                rolling_risk: rollingRisk
+            });
+
             await newMotionLog.save();
-            io.emit("motionUpdate", data);
+
+            io.emit("motionUpdate", {
+                ...newMotionLog.toObject(),
+                rolling_risk: rollingRisk
+            });
+
+            console.log(`Motion saved | Current: ${data.risk_score}% | Rolling: ${rollingRisk}%`);
         }
 
         // 4. TEMPERATURE & HUMIDITY (with Route ID)
