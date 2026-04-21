@@ -4,6 +4,7 @@ import TempReport from '../charts/temperature/TempReport';
 import Chatbot from './Chatbot';
 import Security from '../charts/security/Report';
 import MotionReport from '../charts/motion/MotionReport';
+import HumidityReport from '../charts/humidity/HumidityReport';
 
 const reportStyles = `
   .report-root {
@@ -136,19 +137,12 @@ export default function Report() {
 
           {/* 1. Safety Anomalies */}
           <div className="report-card">
-            <Security/>
+            <Security />
           </div>
 
           {/* 2. Humidity Trend */}
           <div className="report-card">
-            <h2 className="card-title">Humidity Trend</h2>
-            <div className="chart-container">
-              <img
-                src="https://i.imgur.com/GisLhOQ.png"
-                className="chart-img"
-                alt="Humidity Graph"
-              />
-            </div>
+            <HumidityReport />
           </div>
 
           {/* 3. Temperature Trend */}
