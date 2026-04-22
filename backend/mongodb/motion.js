@@ -1,12 +1,10 @@
-// mongo schema here
 const mongoose = require('mongoose');
 
 const MotionSchema = new mongoose.Schema({
   
   time: { 
-    type: Date, 
-    required: true,
-    default: Date.now 
+    type: String, 
+    required: true
   },
   
   
@@ -15,29 +13,51 @@ const MotionSchema = new mongoose.Schema({
     required: true 
   },
   
-  
   net_g: { 
     type: Number, 
     required: true 
   },
   
- 
+  // Rule-based Status 
   status: { 
     type: String, 
     required: true,
   },
   
+  // Machine Learning Output 
+  ml_class: {
+    type: String,
+    required: true
+  },
 
+  // ML Confidence Percentage 
+  ml_conf: {
+    type: Number,
+    required: true
+  },
+
+  // Calculated Risk Level 
+  risk_score: {
+    type: Number,
+    required: true
+  },
+  rolling_risk: {
+    type: Number,
+    default: 0
+},
+
+  
   alert: { 
     type: Boolean, 
     required: true 
   }
   
 }, { 
+  
   timestamps: true 
 });
 
 
-MotionSchema.index({ time: -1 });
+MotionSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('MotionLog', MotionSchema);

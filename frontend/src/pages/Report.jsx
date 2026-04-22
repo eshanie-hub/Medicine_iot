@@ -1,5 +1,10 @@
 import React from 'react';
 import Navbar from '../assets/Navigation';
+import TempReport from '../charts/temperature/TempReport';
+import Chatbot from './Chatbot';
+import Security from '../charts/security/Report';
+import MotionReport from '../charts/motion/MotionReport';
+import HumidityReport from '../charts/humidity/HumidityReport';
 
 const reportStyles = `
   .report-root {
@@ -28,7 +33,8 @@ const reportStyles = `
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     display: flex;
     flex-direction: column;
-    min-height: 0; /* Prevents grid blowouts */
+    min-height: 0;
+    overflow: hidden;
   }
 
   .card-title {
@@ -99,7 +105,7 @@ const reportStyles = `
   }
 
   .gauge-svg { width: 180px; height: auto; }
-  
+
   .risk-value {
     font-size: 2.2rem;
     font-weight: 700;
@@ -128,78 +134,29 @@ export default function Report() {
       <Navbar />
       <div className="report-root">
         <div className="report-grid">
-          
+
           {/* 1. Safety Anomalies */}
           <div className="report-card">
-            <h2 className="card-title">Safety anomalies detected</h2>
-            <table className="anomaly-table">
-              <thead>
-                <tr>
-                  <th className="table-header">Anomaly Type</th>
-                  <th className="table-header">Card ID</th>
-                  <th className="table-header">Date/Time</th>
-                  <th className="table-header">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="table-cell">High access ▼</td>
-                  <td className="table-cell">RF2234</td>
-                  <td className="table-cell">2 Feb<br/>2:00pm</td>
-                  <td className="table-cell">
-                    <div className="detail-box">
-                      <strong>2</strong> accesses<br/>Avg: <strong>15 Min</strong>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="table-cell">Unusual hours ▲</td>
-                  <td className="table-cell">RF2344</td>
-                  <td className="table-cell">2 Feb</td>
-                  <td className="table-cell">
-                    <div className="detail-box">
-                      <strong>1</strong> access<br/>Duration: <strong>15 Min</strong>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <Security />
           </div>
 
           {/* 2. Humidity Trend */}
           <div className="report-card">
-            <h2 className="card-title">Humidity Trend</h2>
-            <div className="chart-container">
-              <img src="https://i.imgur.com/GisLhOQ.png" className="chart-img" alt="Humidity Graph" />
-            </div>
+            <HumidityReport />
           </div>
 
           {/* 3. Temperature Trend */}
           <div className="report-card">
-            <h2 className="card-title">Temperature Trend</h2>
-            <div className="chart-container">
-              <img src="https://i.imgur.com/zV8Q8Xl.png" className="chart-img" alt="Temp Graph" />
-            </div>
+            <TempReport />
           </div>
 
           {/* 4. Transport Risk Level */}
           <div className="report-card">
-            <h2 className="card-title">Transport Risk Level</h2>
-            <div className="risk-content">
-              <svg className="gauge-svg" viewBox="0 0 100 50">
-                <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="10" />
-                <path d="M 10 50 A 40 40 0 0 1 65 18" fill="none" stroke="#2d82cc" strokeWidth="10" />
-              </svg>
-              <div className="risk-value">42%</div>
-              <div className="risk-status">Moderate Risk</div>
-              <div className="risk-footer">
-                Final Medicine Box Condition: <br/>
-                <strong>92% <span style={{color: '#2d82cc'}}>Safe</span></strong>
-              </div>
-            </div>
+            <MotionReport />
           </div>
 
         </div>
+        <Chatbot />
       </div>
     </>
   );
