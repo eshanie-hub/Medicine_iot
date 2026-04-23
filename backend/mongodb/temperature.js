@@ -6,10 +6,15 @@ const temperatureSchema = new mongoose.Schema(
     route_id: { type: String, default: null },
     temp: { type: Number, default: null },
     temp_status: { type: String, required: true },
-    temp_min: { type: Number, default: null },
-    temp_max: { type: Number, default: null },
     fan: { type: String, default: "OFF" },
     timestamp: { type: String, required: true },
+
+    // TinyML + alert fields
+    threshold_breach: { type: Boolean, default: false },
+    ml_class: { type: String, default: null },
+    ml_conf: { type: Number, default: null },
+    alert: { type: Boolean, default: false },
+
   },
   {
     timestamps: true,

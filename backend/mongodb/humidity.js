@@ -6,7 +6,10 @@ const humiditySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    route_id: { type: String, default: null },
+    route_id: {
+      type: String,
+      default: null,
+    },
     hum: {
       type: Number,
       default: null,
@@ -31,6 +34,16 @@ const humiditySchema = new mongoose.Schema(
     timestamp: {
       type: String,
       required: true,
+    },
+
+    // Battery fields
+    batt_v: {
+      type: Number,
+      default: null,
+    },
+    batt_pct: {
+      type: Number,
+      default: null,
     },
   },
   {
