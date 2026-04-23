@@ -117,7 +117,6 @@ client.on("message", async (topic, message) => {
             const lastLog = await MotionLog.findOne().sort({ createdAt: -1 });
 
             // Exponential moving average
-            // Alpha 0.3 = new reading 30%, history 70%
             const alpha = 0.3;
             const lastRolling = lastLog ? lastLog.rolling_risk : data.risk_score;
             const rollingRisk = Math.round((alpha * data.risk_score) + ((1 - alpha) * lastRolling));

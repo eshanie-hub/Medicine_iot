@@ -85,10 +85,6 @@ function formatRouteLabel(route) {
   return `${route.route_id} (${statusLabel}) - ${start}`;
 }
 
-/**
- * Duration formatter — accepts explicit `nowMs` for live ticking.
- * Returns { display, totalMs } so callers can use exact ms if needed.
- */
 function computeDuration(startTime, endTime, nowMs) {
   if (!startTime) return { display: "—", totalMs: 0 };
   const start = new Date(startTime).getTime();
@@ -105,7 +101,6 @@ function computeDuration(startTime, endTime, nowMs) {
   return { display, totalMs: diffMs };
 }
 
-// Always use 1-minute buckets
 const BUCKET_MS = 60 * 1000;
 
 function getBucketStart(ts, anchorTs = 0) {
@@ -147,6 +142,18 @@ function aggregateLogs(logs, anchorTs = 0) {
       if (max > SAFE_MAX) breachPoint = max;
       else if (min < SAFE_MIN) breachPoint = min;
 
+      const hasAnomaly = group.items.some(
+        (item) => item.ml_class === "ABNORMAL"
+      );
+
+      const anomalyItem = group.items.find(
+        (item) => item.ml_class === "ABNORMAL"
+      );
+
+      const anomalyPoint = hasAnomaly
+  ? Number(((Number(anomalyItem?.temp ?? avg)) + 0.4).toFixed(2))
+  : null;
+
       return {
         rawTime: group.rawTime,
         timeValue: new Date(group.rawTime).getTime(),
@@ -155,16 +162,13 @@ function aggregateLogs(logs, anchorTs = 0) {
         max: Number(max.toFixed(2)),
         avg: Number(avg.toFixed(2)),
         breachPoint,
+        anomalyPoint,
+        hasAnomaly,
         _items: group.items,
       };
     });
 }
 
-/**
- * FIX: Calculate time above limit correctly for BOTH active and completed routes.
- * For completed routes: uses actual log timestamps only.
- * Returns milliseconds.
- */
 function calculateTimeAboveLimitMs(logs, limit = SAFE_MAX) {
   if (!logs || logs.length < 2) return 0;
   let totalMs = 0;
@@ -300,16 +304,50 @@ function LogModal({ logs, onClose, title }) {
 /* ─── Custom Tooltip ─────────────────────────────────────────────── */
 function CustomTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
-  const rawTime = payload[0]?.payload?.rawTime;
+
+  const point = payload[0]?.payload;
+  const rawTime = point?.rawTime;
+
   return (
-    <div style={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 6px 18px rgba(0,0,0,0.09)", fontSize: 11, fontFamily: "Poppins, sans-serif", background: "#fff", padding: "7px 11px" }}>
-      {rawTime && <div style={{ color: "#64748b", marginBottom: 3 }}>{formatTooltipTime(rawTime)}</div>}
+    <div
+      style={{
+        borderRadius: 10,
+        border: "1px solid #e2e8f0",
+        boxShadow: "0 6px 18px rgba(0,0,0,0.09)",
+        fontSize: 11,
+        fontFamily: "Poppins, sans-serif",
+        background: "#fff",
+        padding: "7px 11px",
+      }}
+    >
+      {rawTime && (
+        <div style={{ color: "#64748b", marginBottom: 3 }}>
+          {formatTooltipTime(rawTime)}
+        </div>
+      )}
+
       {payload.map((p) =>
-        p.value !== null && p.value !== undefined && p.dataKey !== "breachPoint" ? (
+        p.value !== null &&
+        p.value !== undefined &&
+        p.dataKey !== "breachPoint" &&
+        p.dataKey !== "anomalyPoint" ? (
           <div key={p.dataKey} style={{ color: p.color || "#64748b" }}>
             {p.name}: <strong>{p.value}°C</strong>
           </div>
         ) : null
+      )}
+
+      {point?.breachPoint !== null && point?.breachPoint !== undefined && (
+        <div style={{ color: "#dc2626" }}>
+          Breach: <strong>Yes</strong>
+        </div>
+      )}
+
+      {point?.hasAnomaly && (
+        <div style={{ color: "#7c3aed", display: "flex", alignItems: "center", gap: "4px" }}>
+          <span style={{ display: "inline-block", width: 8, height: 8, background: "#7c3aed", transform: "rotate(45deg)", flexShrink: 0 }} />
+          Anomaly: <strong>{point.anomalyPoint}°C</strong>
+        </div>
       )}
     </div>
   );
@@ -320,6 +358,35 @@ function CustomYTick({ x, y, payload }) {
     <text x={x} y={y} dy={4} textAnchor="end" fill="#64748b" fontSize={10} fontWeight={400} fontFamily="Poppins, sans-serif">
       {`${payload.value}°`}
     </text>
+  );
+}
+
+/* ─── Custom Anomaly Diamond Dot ─────────────────────────────────── */
+// Renders a purple rotated-square (diamond) for each anomaly point.
+// Recharts calls this with (props) where cx/cy are the pixel coords.
+function AnomalyDot(props) {
+  const { cx, cy, value } = props;
+  // Only render when there's an actual anomaly value at this bucket
+  if (value === null || value === undefined) return null;
+  const s = 5; // half-size of the diamond
+  return (
+    <g>
+      {/* Outer glow ring */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={s + 4}
+        fill="#7c3aed"
+        fillOpacity={0.15}
+      />
+      {/* Diamond shape */}
+      <polygon
+        points={`${cx},${cy - s} ${cx + s},${cy} ${cx},${cy + s} ${cx - s},${cy}`}
+        fill="#7c3aed"
+        stroke="#ffffff"
+        strokeWidth={1.5}
+      />
+    </g>
   );
 }
 
@@ -360,9 +427,6 @@ export default function TempReport() {
   const [modalLogs, setModalLogs] = useState(null);
   const [modalTitle, setModalTitle] = useState("");
 
-  
-
-  // Live clock — ticks every second, used for duration & time-above for active routes
   const nowMs = useTick(1000);
 
   // ── Routes polling (every 10 s) ──────────────────────────────────
@@ -400,12 +464,11 @@ export default function TempReport() {
     [routes, selectedRouteId]
   );
 
-
   const routeAnchorTs = useMemo(() => {
-  return selectedRoute?.start_time
-    ? new Date(selectedRoute.start_time).getTime()
-    : 0;
-}, [selectedRoute]);
+    return selectedRoute?.start_time
+      ? new Date(selectedRoute.start_time).getTime()
+      : 0;
+  }, [selectedRoute]);
 
   const isActive = !selectedRoute || selectedRoute?.status?.toLowerCase() === "active";
 
@@ -453,14 +516,14 @@ export default function TempReport() {
     return () => { mounted = false; clearInterval(interval); };
   }, [selectedRouteId, selectedRoute?.status]);
 
- const chartData = useMemo(
-  () => aggregateLogs(logs, routeAnchorTs),
-  [logs, routeAnchorTs]
-);
+  const chartData = useMemo(
+    
+    () => aggregateLogs(logs, routeAnchorTs),
+    [logs, routeAnchorTs]
+    
+  );
 
-  // ── FIX: X-axis domain pinned to route start/end times ───────────
-  // This ensures the timeline always shows the correct window, not just
-  // the data range (which can be misleading if data is sparse/delayed).
+
   const xDomain = useMemo(() => {
     if (!selectedRoute?.start_time) {
       if (chartData.length > 0) {
@@ -471,12 +534,10 @@ export default function TempReport() {
     const startMs = new Date(selectedRoute.start_time).getTime();
     let endMs;
     if (isActive) {
-      // For live routes: extend to now so the chart grows in real time
       endMs = nowMs;
     } else if (selectedRoute.end_time) {
       endMs = new Date(selectedRoute.end_time).getTime();
     } else {
-      // Fallback: use last data point
       endMs = chartData.length > 0
         ? chartData[chartData.length - 1].timeValue
         : startMs + 60000;
@@ -484,41 +545,31 @@ export default function TempReport() {
     return [startMs, endMs];
   }, [selectedRoute, isActive, nowMs, chartData]);
 
-  // ── FIX: Time above limit — synced to route duration ────────────
-  // For completed routes: use actual log timestamps (no tail extrapolation).
-  // For active routes: add live tail from last log to now if still above limit.
   const timeAboveLimitMs = useMemo(() => {
     if (logs.length === 0) return 0;
 
     if (!isActive) {
-      // Completed route: pure log-based calculation, no live extrapolation
       return calculateTimeAboveLimitMs(logs, SAFE_MAX);
     }
 
-// Active route: log-based + live tail anchored to last log's own timestamp
-const baseMs = calculateTimeAboveLimitMs(logs, SAFE_MAX);
-const lastLog = logs[logs.length - 1];
-const lastTemp = Number(lastLog.temp);
-let tailMs = 0;
-if (lastTemp > SAFE_MAX) {
-  // Anchor tail to last log's actual timestamp, NOT the fetch time.
-  // This makes the counter grow continuously and survive new data arrivals.
-  const lastLogTime = new Date(lastLog.timestamp || lastLog.createdAt).getTime();
-  tailMs = Math.max(0, nowMs - lastLogTime);
-}
-return baseMs + tailMs;
+    const baseMs = calculateTimeAboveLimitMs(logs, SAFE_MAX);
+    const lastLog = logs[logs.length - 1];
+    const lastTemp = Number(lastLog.temp);
+    let tailMs = 0;
+    if (lastTemp > SAFE_MAX) {
+      const lastLogTime = new Date(lastLog.timestamp || lastLog.createdAt).getTime();
+      tailMs = Math.max(0, nowMs - lastLogTime);
+    }
+    return baseMs + tailMs;
   }, [logs, isActive, nowMs]);
 
   const timeAboveLimitMinutes = Math.floor(timeAboveLimitMs / 60000);
 
-  // ── FIX: Route duration — uses route start/end_time for completed routes
-  // so it never drifts out of sync with "time above limit".
   const { display: durationDisplay } = useMemo(() => {
     if (!selectedRoute) return { display: "—", totalMs: 0 };
     if (isActive) {
       return computeDuration(selectedRoute.start_time, null, nowMs);
     }
-    // Completed: use the stored end_time so it's fixed and accurate
     return computeDuration(selectedRoute.start_time, selectedRoute.end_time, null);
   }, [selectedRoute, isActive, nowMs]);
 
@@ -545,12 +596,17 @@ return baseMs + tailMs;
   }, [yMin, yMax]);
 
   const openFullLogsModal = () => {
-  setModalLogs(groupLogsForModalByMinute(logs, routeAnchorTs));
-  setModalTitle(selectedRoute ? `${selectedRoute.route_id} — Full trip` : "");
-};
+    setModalLogs(groupLogsForModalByMinute(logs, routeAnchorTs));
+    setModalTitle(selectedRoute ? `${selectedRoute.route_id} — Full trip` : "");
+  };
 
-  // Route status label for the duration card
   const routeStatusLabel = isActive ? "Live" : "Completed";
+
+  // Count anomaly buckets for the badge
+  const anomalyCount = useMemo(
+    () => chartData.filter((d) => d.hasAnomaly).length,
+    [chartData]
+  );
 
   return (
     <>
@@ -589,7 +645,21 @@ return baseMs + tailMs;
               </div>
             )}
 
-            {/* FIX: Always show time above limit for both active and completed routes */}
+            {/* Anomaly count card — only shown when anomalies exist */}
+            {anomalyCount > 0 && (
+              <div style={styles.anomalyCard}>
+                <div style={styles.anomalyHeader}>
+                  {/* Diamond icon to match chart marker */}
+                  <svg width="11" height="11" viewBox="0 0 10 10" style={{ marginRight: 4, flexShrink: 0 }}>
+                    <polygon points="5,0 10,5 5,10 0,5" fill="#7c3aed" />
+                  </svg>
+                  <span style={styles.cardLabelPurple}>ML Anomalies</span>
+                </div>
+                <div style={styles.anomalyValue}>{anomalyCount}</div>
+                <div style={styles.cardSubLabelPurple}>bucket{anomalyCount !== 1 ? "s" : ""} flagged</div>
+              </div>
+            )}
+
             <div style={styles.timeAboveCard}>
               <div style={styles.timeAboveHeader}>
                 <AlertTriangle size={11} color="#e11d48" style={{ marginRight: 4 }} />
@@ -598,7 +668,6 @@ return baseMs + tailMs;
               <div style={styles.timeAboveValue}>
                 {formatMinutesToHoursMins(timeAboveLimitMinutes)}
               </div>
-              {/* Show percentage of route time spent above limit */}
               {selectedRoute && !isActive && selectedRoute.start_time && selectedRoute.end_time && (
                 <div style={styles.cardSubLabelRed}>
                   {(() => {
@@ -646,7 +715,6 @@ return baseMs + tailMs;
                 <ReferenceArea y1={SAFE_MAX} y2={yMax} fill="#fecaca" fillOpacity={0.8} />
                 <ReferenceLine y={SAFE_MIN} stroke="#16a34a" strokeDasharray="6 3" strokeWidth={1.5} />
                 <ReferenceLine y={SAFE_MAX} stroke="#16a34a" strokeDasharray="6 3" strokeWidth={1.5} />
-                {/* FIX: X-axis uses route start/end time domain, not just data range */}
                 <XAxis
                   dataKey="timeValue"
                   type="number"
@@ -669,6 +737,8 @@ return baseMs + tailMs;
                   interval={0}
                 />
                 <Tooltip content={<CustomTooltip />} />
+
+                {/* Average temperature line */}
                 <Line
                   type="monotone"
                   dataKey="avg"
@@ -679,6 +749,8 @@ return baseMs + tailMs;
                   isAnimationActive={false}
                   name="Average"
                 />
+
+                {/* Breach markers — red filled circle */}
                 <Line
                   type="monotone"
                   dataKey="breachPoint"
@@ -688,6 +760,23 @@ return baseMs + tailMs;
                   isAnimationActive={false}
                   connectNulls={false}
                   name="Breach"
+                />
+
+                {/*
+                  ── FIX: anomaly line is NOW inside LineChart ──────────────
+                  Uses a custom dot renderer (AnomalyDot) that draws a purple
+                  diamond. stroke="transparent" hides the connecting line so
+                  only the markers are visible.
+                */}
+                <Line
+                  type="monotone"
+                  dataKey="anomalyPoint"
+                  stroke="transparent"
+                  dot={<AnomalyDot />}
+                  activeDot={{ r: 6, fill: "#7c3aed", stroke: "#ffffff", strokeWidth: 2 }}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                  name="Anomaly"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -713,6 +802,13 @@ return baseMs + tailMs;
           <div style={styles.legendItem}>
             <span style={styles.legendDot} />
             <span>Breach</span>
+          </div>
+          {/* Anomaly legend — diamond shape */}
+          <div style={styles.legendItem}>
+            <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
+              <polygon points="5,0 10,5 5,10 0,5" fill="#7c3aed" />
+            </svg>
+            <span>ML Anomaly</span>
           </div>
         </div>
       </div>
@@ -760,6 +856,24 @@ const styles = {
   durationValue: {
     fontSize: "1.1rem", fontWeight: 800, color: "#111827", lineHeight: 1.1,
     fontVariantNumeric: "tabular-nums",
+  },
+  // ── New anomaly summary card ──────────────────────────────────────
+  anomalyCard: {
+    background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+    border: "1.5px solid #c4b5fd", borderRadius: "12px", padding: "8px 13px",
+    minWidth: "110px", boxShadow: "0 2px 10px rgba(124,58,237,0.08)",
+  },
+  anomalyHeader: { display: "flex", alignItems: "center", marginBottom: "2px" },
+  cardLabelPurple: {
+    fontSize: "0.65rem", fontWeight: 700, color: "#6d28d9",
+    textTransform: "uppercase", letterSpacing: "0.05em",
+  },
+  anomalyValue: {
+    fontSize: "1.25rem", fontWeight: 800, color: "#111827", lineHeight: 1.1,
+    fontVariantNumeric: "tabular-nums",
+  },
+  cardSubLabelPurple: {
+    fontSize: "0.62rem", fontWeight: 600, color: "#7c3aed", marginTop: "2px",
   },
   timeAboveCard: {
     background: "linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)",

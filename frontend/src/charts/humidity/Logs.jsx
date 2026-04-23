@@ -2,145 +2,322 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 const logStyles = `
-  /* EXACT SAME AS TEMPERATURE STYLES */
   .logs-container {
     height: 100%;
     display: flex;
     flex-direction: column;
     font-family: 'Poppins', sans-serif;
-    min-width: 0;
   }
 
   .logs-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 14px;
-    gap: 10px;
+    margin-bottom: 20px;
+    gap: 12px;
     flex-wrap: wrap;
-  }
-
-  .logs-title {
-    margin: 0;
-    font-weight: 800;
-    color: #1e293b;
-    font-size: clamp(1rem, 2.5vw, 1.25rem);
-    white-space: nowrap;
   }
 
   .dropdown-group {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     flex-wrap: wrap;
-    align-items: center;
   }
 
   .filter-select {
     background: white;
     border: 1px solid #f1f5f9;
-    padding: 8px 32px 8px 14px;
+    padding: 10px 20px;
     border-radius: 25px;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #64748b;
     cursor: pointer;
     outline: none;
     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     appearance: none;
-    width: 100%;
-  }
-
-  .filter-select-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 130px;
-    max-width: 220px;
-  }
-
-  .select-arrow {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #3b82f6;
-    pointer-events: none;
-    font-size: 0.65rem;
+    min-width: 170px;
   }
 
   .date-btn {
     background: white;
     border: 1px solid #f1f5f9;
-    padding: 8px 14px;
+    padding: 10px 20px;
     border-radius: 25px;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #64748b;
     cursor: pointer;
     outline: none;
     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    min-width: 140px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 10px;
+    font-family: 'Poppins', sans-serif;
   }
+
+  .calendar-popup {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    padding: 16px;
+    z-index: 100;
+    width: 280px;
+  }
+
+  .cal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .cal-nav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #3b82f6;
+    font-size: 1.1rem;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+
+  .cal-nav-btn:hover { background: #f1f5f9; }
+
+  .cal-month-label {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.95rem;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .cal-day-name {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+    padding: 4px 0;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .cal-day {
+    text-align: center;
+    padding: 6px 0;
+    border-radius: 50%;
+    font-size: 0.82rem;
+    color: #475569;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    border: none;
+    background: none;
+  }
+
+  .cal-day:hover { background: #eff6ff; color: #3b82f6; }
+
+  .cal-day.selected {
+    background: #3b82f6;
+    color: white;
+    font-weight: 700;
+  }
+
+  .cal-day.today {
+    border: 1.5px solid #3b82f6;
+    color: #3b82f6;
+    font-weight: 600;
+  }
+
+  .cal-day.empty { cursor: default; }
+  .cal-day.empty:hover { background: none; }
+
+  .cal-clear {
+    margin-top: 10px;
+    width: 100%;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 12px;
+    padding: 7px;
+    font-size: 0.82rem;
+    color: #64748b;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+  }
+
+  .cal-clear:hover { background: #e2e8f0; }
 
   .scroll-wrapper {
     flex: 1;
     overflow-y: auto;
-    overflow-x: auto;
     background: #f8fafc;
-    border-radius: 20px;
-    padding: 0 12px 12px 12px;
+    border-radius: 25px;
+    padding: 0 15px 15px 15px;
   }
 
-  .logs-table {
-    width: 100%;
-    min-width: 480px;
-    border-collapse: collapse;
+  .logs-grid-header {
+    display: grid;
+    grid-template-columns: 1.2fr 1.3fr 1fr 1fr 1fr;
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    z-index: 10;
   }
 
-  .logs-table th {
+  .column-label {
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: 1rem;
     color: #334155;
     text-align: center;
-    padding: 16px 8px 12px;
   }
 
-  .logs-table td {
-    font-size: 0.8rem;
+  .log-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.3fr 1fr 1fr 1fr;
+    padding: 14px 0;
+    border-radius: 15px;
+    margin-bottom: 6px;
+    background: transparent;
+  }
+
+  .log-row:nth-child(even) {
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  }
+
+  .log-entry {
+    font-size: 0.9rem;
     color: #64748b;
     text-align: center;
-    padding: 11px 8px;
-  }
-
-  .logs-table tbody tr:nth-child(even) {
-    background: white;
-  }
-
-  .status-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 0.72rem;
-    font-weight: 700;
-  }
-
-  .status-CRITICAL { background: #fef2f2; color: #dc2626; }
-  .status-WARNING  { background: #fff7ed; color: #ea580c; }
-  .status-NORMAL   { background: #f0fdf4; color: #3182ce; }
-  .status-default  { background: #f1f5f9; color: #16a34a; }
-
-  .empty-state {
-    padding: 32px 0;
-    text-align: center;
-    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    word-break: break-word;
   }
 `;
 
-function getStatusClass(status) {
-  if (status === "CRITICAL") return "status-badge status-CRITICAL";
-  if (status === "WARNING") return "status-badge status-WARNING";
-  if (status === "NORMAL") return "status-badge status-NORMAL";
-  return "status-badge status-default";
+const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const MONTHS = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December"
+];
+
+function CalendarPicker({ value, onChange, onClose }) {
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(
+    value ? new Date(value).getFullYear() : today.getFullYear()
+  );
+  const [viewMonth, setViewMonth] = useState(
+    value ? new Date(value).getMonth() : today.getMonth()
+  );
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  const prevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
+
+  const selectDay = (day) => {
+    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    onChange(dateStr);
+    onClose();
+  };
+
+  const isSelected = (day) => {
+    if (!value) return false;
+    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return dateStr === value;
+  };
+
+  const isToday = (day) => {
+    return (
+      day === today.getDate() &&
+      viewMonth === today.getMonth() &&
+      viewYear === today.getFullYear()
+    );
+  };
+
+  const cells = [...Array(firstDay).fill(null), ...Array(daysInMonth).keys().map((i) => i + 1)];
+
+  return (
+    <div className="calendar-popup">
+      <div className="cal-nav">
+        <button className="cal-nav-btn" onClick={prevMonth}>‹</button>
+        <span className="cal-month-label">{MONTHS[viewMonth]} {viewYear}</span>
+        <button className="cal-nav-btn" onClick={nextMonth}>›</button>
+      </div>
+
+      <div className="cal-grid">
+        {DAYS.map((d) => (
+          <div key={d} className="cal-day-name">{d}</div>
+        ))}
+
+        {cells.map((day, i) =>
+          day === null ? (
+            <div key={`e-${i}`} className="cal-day empty" />
+          ) : (
+            <button
+              key={day}
+              className={`cal-day${isSelected(day) ? " selected" : ""}${isToday(day) && !isSelected(day) ? " today" : ""}`}
+              onClick={() => selectDay(day)}
+            >
+              {day}
+            </button>
+          )
+        )}
+      </div>
+
+      <button
+        className="cal-clear"
+        onClick={() => {
+          onChange("");
+          onClose();
+        }}
+      >
+        Clear
+      </button>
+    </div>
+  );
+}
+
+function formatRouteLabel(route) {
+  if (!route) return "";
+  const start = route.start_time
+    ? new Date(route.start_time).toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Colombo",
+      })
+    : "Unknown";
+
+  return `${route.route_id} (${route.status}) - ${start}`;
 }
 
 export default function HumidityLogs() {
@@ -152,7 +329,6 @@ export default function HumidityLogs() {
   const [showCal, setShowCal] = useState(false);
   const calRef = useRef(null);
 
-  /* ==== SAME LOGIC (UNCHANGED) ==== */
   useEffect(() => {
     const fetchRoutes = async () => {
       try {
@@ -161,19 +337,28 @@ export default function HumidityLogs() {
           axios.get("http://localhost:5000/api/route/current"),
         ]);
 
-        const allRoutes = Array.isArray(routesRes.data) ? routesRes.data : [];
-        setRoutes(allRoutes);
+        const allRoutes = Array.isArray(routesRes.data)
+          ? routesRes.data.sort(
+              (a, b) =>
+                new Date(b.start_time || b.createdAt) -
+                new Date(a.start_time || a.createdAt)
+            )
+          : [];
 
         const currentRoute = currentRes.data;
+
+        setRoutes(allRoutes);
+
         if (currentRoute?.route_id) {
-          setSelectedRouteId(prev => prev || currentRoute.route_id);
+          setSelectedRouteId((prev) => prev || currentRoute.route_id);
         } else if (allRoutes.length > 0) {
-          setSelectedRouteId(prev => prev || allRoutes[0].route_id);
+          setSelectedRouteId((prev) => prev || allRoutes[0].route_id);
         }
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching routes:", error);
       }
     };
+
     fetchRoutes();
   }, []);
 
@@ -184,10 +369,15 @@ export default function HumidityLogs() {
           ? `http://localhost:5000/api/humidity?route_id=${encodeURIComponent(selectedRouteId)}`
           : "http://localhost:5000/api/humidity";
 
-        const res = await axios.get(url);
-        setLogs(res.data);
+        const response = await axios.get(url);
+        const sortedData = response.data.sort(
+          (a, b) =>
+            new Date(b.timestamp || b.createdAt) -
+            new Date(a.timestamp || a.createdAt)
+        );
+        setLogs(sortedData);
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching humidity logs:", error);
       }
     };
 
@@ -196,10 +386,38 @@ export default function HumidityLogs() {
     return () => clearInterval(interval);
   }, [selectedRouteId]);
 
+  useEffect(() => {
+    const handler = (e) => {
+      if (calRef.current && !calRef.current.contains(e.target)) setShowCal(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const formatSLTime = (ts) => {
+    if (!ts) return "N/A";
+    const date = new Date(ts);
+    return date.toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Colombo",
+    }).replace(",", "");
+  };
+
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return "Date";
+    const [y, m, d] = dateStr.split("-");
+    return `${parseInt(d)} ${MONTHS[parseInt(m) - 1].slice(0, 3)} ${y}`;
+  };
+
   const filteredLogs = logs.filter((log) => {
     const logDate = new Date(log.timestamp || log.createdAt).toISOString().split("T")[0];
-    return (filterDate === "" || logDate === filterDate) &&
-      (filterStatus === "" || log.hum_status === filterStatus);
+    const matchesDate = filterDate === "" || logDate === filterDate;
+    const matchesStatus = filterStatus === "" || log.hum_status === filterStatus;
+    return matchesDate && matchesStatus;
   });
 
   return (
@@ -207,28 +425,37 @@ export default function HumidityLogs() {
       <style>{logStyles}</style>
 
       <div className="logs-header">
-        <h2 className="logs-title">Logs</h2>
+        <h2 style={{ margin: 0, fontWeight: 800, color: "#1e293b" }}>Logs</h2>
 
         <div className="dropdown-group">
-          {/* Route Filter */}
-          <div className="filter-select-wrap">
+          <div style={{ position: "relative" }}>
             <select
               className="filter-select"
               value={selectedRouteId}
               onChange={(e) => setSelectedRouteId(e.target.value)}
             >
               <option value="">All Routes</option>
-              {routes.map(route => (
+              {routes.map((route) => (
                 <option key={route.route_id} value={route.route_id}>
-                  {route.route_id}
+                  {formatRouteLabel(route)}
                 </option>
               ))}
             </select>
-            <span className="select-arrow">▼</span>
+            <span
+              style={{
+                position: "absolute",
+                right: "15px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#3b82f6",
+                pointerEvents: "none",
+              }}
+            >
+              ▼
+            </span>
           </div>
 
-          {/* Status Filter */}
-          <div className="filter-select-wrap">
+          <div style={{ position: "relative" }}>
             <select
               className="filter-select"
               value={filterStatus}
@@ -240,57 +467,82 @@ export default function HumidityLogs() {
               <option value="CRITICAL">CRITICAL</option>
               <option value="H-ERR">H-ERR</option>
             </select>
-            <span className="select-arrow">▼</span>
+            <span
+              style={{
+                position: "absolute",
+                right: "15px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#3b82f6",
+                pointerEvents: "none",
+              }}
+            >
+              ▼
+            </span>
           </div>
 
-          {/* Date Filter */}
-          <div className="filter-select-wrap">
-            <input
-              type="date"
-              className="filter-select"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-            />
+          <div style={{ position: "relative" }} ref={calRef}>
+            <button className="date-btn" onClick={() => setShowCal((v) => !v)}>
+              <span style={{ color: filterDate ? "#1e293b" : "#64748b" }}>
+                {formatDisplayDate(filterDate)}
+              </span>
+              <span style={{ color: "#3b82f6" }}>▼</span>
+            </button>
+
+            {showCal && (
+              <CalendarPicker
+                value={filterDate}
+                onChange={setFilterDate}
+                onClose={() => setShowCal(false)}
+              />
+            )}
           </div>
         </div>
       </div>
 
       <div className="scroll-wrapper">
-        <table className="logs-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Route</th>
-              <th>Humidity</th>
-              <th>Status</th>
-              <th>Fan</th>
-            </tr>
-          </thead>
+        <div className="logs-grid-header">
+          <div className="column-label">Time</div>
+          <div className="column-label">Route</div>
+          <div className="column-label">Humidity</div>
+          <div className="column-label">Status</div>
+          <div className="column-label">Fan</div>
+        </div>
 
-          <tbody>
-            {filteredLogs.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="empty-state">
-                  No humidity logs found.
-                </td>
-              </tr>
-            ) : (
-              filteredLogs.map((log) => (
-                <tr key={log._id}>
-                  <td>{new Date(log.timestamp || log.createdAt).toLocaleString()}</td>
-                  <td>{log.route_id || "No Route"}</td>
-                  <td>{log.hum !== undefined ? `${log.hum} %` : "N/A"}</td>
-                  <td>
-                    <span className={getStatusClass(log.hum_status)}>
-                      {log.hum_status || "—"}
-                    </span>
-                  </td>
-                  <td>{log.fan || "N/A"}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <div className="logs-body">
+          {filteredLogs.map((log) => (
+            <div key={log._id} className="log-row">
+              <div className="log-entry">{formatSLTime(log.timestamp || log.createdAt)}</div>
+              <div className="log-entry">{log.route_id || "No Route"}</div>
+              <div className="log-entry">
+                {log.hum !== null && log.hum !== undefined ? `${log.hum} %` : "N/A"}
+              </div>
+              <div
+                className="log-entry"
+                style={{
+                  fontWeight: 600,
+                  color:
+                    log.hum_status === "CRITICAL"
+                      ? "#dc2626"
+                      : log.hum_status === "WARNING"
+                      ? "#ea580c"
+                      : log.hum_status === "NORMAL"
+                      ? "#16a34a"
+                      : "#475569",
+                }}
+              >
+                {log.hum_status || "No Status"}
+              </div>
+              <div className="log-entry">{log.fan || "N/A"}</div>
+            </div>
+          ))}
+
+          {filteredLogs.length === 0 && (
+            <div style={{ padding: "24px 0", textAlign: "center", color: "#64748b" }}>
+              No humidity logs found.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

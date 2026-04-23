@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import Navbar from '../assets/Navigation';
-import LastAlert from '../charts/motion/Last_Alert';
-import LockStatusCard from '../charts/security/Last_Alert';
-import TempLastAlert from '../charts/temperature/Last_Alert';
-import HumLastAlert from '../charts/humidity/Last_Alert';
-import RouteMap from '../assets/RouteMap';
-import Chatbot from './Chatbot';
+import Navbar from "../assets/Navigation";
+import LastAlert from "../charts/motion/Last_Alert";
+import LockStatusCard from "../charts/security/Last_Alert";
+import TempLastAlert from "../charts/temperature/Last_Alert";
+import HumLastAlert from "../charts/humidity/Last_Alert";
+import RouteMap from "../assets/RouteMap";
+import Chatbot from "./Chatbot";
 import Wifi from '../charts/wifi/Last_Alert';
 
+// Keep socket connection for other team's lock UI feature
 const socket = io("http://localhost:5000");
+
+// Route API base for your route feature
+const ROUTE_API_BASE = "http://localhost:5000";
 
 const pageStyles = `
   html, body {
@@ -127,23 +131,30 @@ export default function Driver() {
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [showLockPopup, setShowLockPopup] = useState(false);
 
+  const fetchCurrentRoute = async () => {
+    try {
+      const res = await fetch(`${ROUTE_API_BASE}/api/route/current`);
+      const data = await res.json();
+
+      if (res.ok) {
+        setActiveRoute(data);
+      } else {
+        console.error("Failed to fetch current route:", data.message);
+      }
+    } catch (error) {
+      console.error("Failed to fetch current route:", error);
+    }
+  };
+
   useEffect(() => {
     fetchCurrentRoute();
     socket.on("requestLockUI", () => setShowLockPopup(true));
     socket.on("clearLockUI", () => setShowLockPopup(false));
     return () => {
-        socket.off("requestLockUI");
-        socket.off("clearLockUI");
+      socket.off("requestLockUI");
+      socket.off("clearLockUI");
     };
   }, []);
-
-  const fetchCurrentRoute = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/route/current');
-      const data = await res.json();
-      if (res.ok) setActiveRoute(data);
-    } catch (err) { console.error('Route fetch failed:', err); }
-  };
 
   const handleLockResponse = (choice) => {
     if (choice === "yes") socket.emit("uiLockResponse", "yes");
@@ -151,18 +162,36 @@ export default function Driver() {
   };
 
   const handleRouteToggle = async () => {
-    setLoadingRoute(true);
-    const endpoint = activeRoute ? '/api/route/end' : '/api/route/start';
     try {
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setActiveRoute(activeRoute ? null : data.route);
-    } catch (err) { alert(err.message); }
-    setLoadingRoute(false);
+      setLoadingRoute(true);
+
+      if (activeRoute) {
+        const res = await fetch(`${ROUTE_API_BASE}/api/route/end`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to end route");
+
+        setActiveRoute(null);
+      } else {
+        const res = await fetch(`${ROUTE_API_BASE}/api/route/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to start route");
+
+        setActiveRoute(data.route);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    } finally {
+      setLoadingRoute(false);
+    }
   };
 
   return (
@@ -198,27 +227,36 @@ export default function Driver() {
         </aside>
 
         <main className="map-container">
-          <div className="map-header">
-            <div style={{ textAlign: 'left' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#1e293b', fontWeight: '800' }}>Route Optimization</h2>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
-                {activeRoute ? `Active ID: ${activeRoute.route_id}` : 'No active route'}
-              </p>
+          <div className="map-topbar">
+            <div className="route-info">
+              <h2 className="route-title">Route Tracking</h2>
+              <span className="route-id">
+                {activeRoute
+                  ? `Active Route ID: ${activeRoute.route_id}`
+                  : "No active route"}
+              </span>
             </div>
-            <button 
-              className="route-btn" 
-              onClick={handleRouteToggle} 
-              disabled={loadingRoute}
-            >
-              {loadingRoute ? '...' : activeRoute ? 'End Route' : 'Start Route'}
-            </button>
+
+            <div className="route-actions">
+              <button
+                className={`route-btn ${activeRoute ? "end" : "start"}`}
+                onClick={handleRouteToggle}
+                disabled={loadingRoute}
+              >
+                {loadingRoute
+                  ? "Please wait..."
+                  : activeRoute
+                  ? "End Route"
+                  : "Start Route"}
+              </button>
+            </div>
           </div>
-          
+
           <div className="map-wrapper">
             <RouteMap activeRoute={activeRoute} />
           </div>
         </main>
-        
+
         <Chatbot />
       </div>
     </>
