@@ -8,6 +8,8 @@ import TempLastAlert from '../charts/temperature/Last_Alert';
 import HumLastAlert from '../charts/humidity/Last_Alert';
 import TemperatureLogs from '../charts/temperature/Logs';
 import HumidityLogs from '../charts/humidity/Logs';
+import BatteryChart from '../charts/humidity/BatteryChart';
+import BatteryCard from '../charts/humidity/BatteryCard';
 import Chatbot from './Chatbot';
 import Wifi from '../charts/wifi/Last_Alert';
 
@@ -75,6 +77,10 @@ const systemStyles = `
       gap: 20px;
       /* Equal height logs and charts on desktop */
       align-items: stretch; 
+    }
+    .bottom-split .panel {
+      flex: 1;              /* each takes 50% */
+      min-width: 0;         /* prevents overflow issues */
     }
   }
 
@@ -157,11 +163,11 @@ export default function System() {
 
   const renderLogTable = () => {
     switch (activeLog) {
-      case 'Security':    return <SecurityLogs />;
-      case 'Motion':      return <MotionLogs />;
+      case 'Security': return <SecurityLogs />;
+      case 'Motion': return <MotionLogs />;
       case 'Temperature': return <TemperatureLogs />;
-      case 'Humidity':    return <HumidityLogs />;
-      default:            return null;
+      case 'Humidity': return <HumidityLogs />;
+      default: return null;
     }
   };
 
@@ -196,14 +202,24 @@ export default function System() {
             </div>
           </div>
 
-          <div className="panel panel-chart">
-            <h3 className="panel-title">Sensor Live Status</h3>
-            <img
-              src="https://i.imgur.com/GisLhOQ.png"
-              className="chart-img"
-              alt="Live Status Chart"
-            />
+          {/* Right: Battery time-series chart */}
+          <div className="panel">
+            <div className="battery-header" style={{ marginBottom: "10px" }}>
+              <h1 className="panel-title" style={{ margin: 0 }}>🔋 Battery Health Analytics</h1>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                Last 30 readings · Live
+              </span>
+            </div>
+
+            {/* 🔋 NEW Battery Summary */}
+            <BatteryCard />
+
+            {/* 📈 Chart */}
+            <div style={{ flex: 1 }}>
+              <BatteryChart />
+            </div>
           </div>
+
         </div>
         <Chatbot />
       </div>
