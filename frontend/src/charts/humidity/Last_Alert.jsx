@@ -68,8 +68,8 @@ export default function LastAlert() {
     : isWarning
     ? "#ea580c"
     : isNormal
-    ? "#16a34a"
-    : "#475569";
+    ? "#1e40af"
+    : "#16a34a";
 
   return (
     <div style={styles.card}>
