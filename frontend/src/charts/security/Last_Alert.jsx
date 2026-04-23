@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-// Import outlined icons
 import { Lock, LockKeyholeOpen, AlertTriangle } from 'lucide-react';
 
 const socket = io('http://localhost:5000');
@@ -12,25 +11,14 @@ export default function LockStatusCard() {
     const [status, setStatus] = useState("Loading...");
     const [lastTimeDisplay, setLastTimeDisplay] = useState("");
 
-    const formatTimestamp = (ts) => {
-        if (!ts) return "";
-        const eventDate = new Date(ts);
-        const now = new Date();
-        const diffInMs = now - eventDate;
-        const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
-
-        if (diffInMs > twentyFourHoursInMs) {
-            return eventDate.toLocaleDateString('en-GB', {
-                day: 'numeric', month: 'short', year: 'numeric'
-            });
-        } else {
-            return eventDate.toLocaleTimeString([], { 
-                hour: '2-digit', minute: '2-digit' 
-            });
-        }
-    };
+    // Detect if screen is small for dynamic icon sizing
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
     useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handleResize);
+        
+        // Fetch logic
         fetch('http://localhost:5000/api/security')
             .then(res => res.json())
             .then(data => {
@@ -47,20 +35,32 @@ export default function LockStatusCard() {
             setLastTimeDisplay(formatTimestamp(new Date()));
         });
 
-        return () => socket.off('lockUpdate');
+        return () => {
+            socket.off('lockUpdate');
+            window.removeEventListener('resize', handleResize);
+        };
     }, []);
+
+    const formatTimestamp = (ts) => {
+        if (!ts) return "";
+        const eventDate = new Date(ts);
+        const now = new Date();
+        const diffInMs = now - eventDate;
+        if (diffInMs > 86400000) {
+            return eventDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+        return eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
 
     const isLocked = status === "Locked" || status === "Close";
     const isDenied = status === "Denied" || status === "Access Denied";
     
-    // Icon Selection Logic
     const renderIcon = () => {
         const iconProps = {
-            size: 32,
-            color: BRAND_BLUE, // All icons will be blue
-            strokeWidth: 2     // Ensures a clear outline
+            size: isMobile ? 24 : 32, // Shrink icon on mobile
+            color: BRAND_BLUE,
+            strokeWidth: 2
         };
-
         if (isDenied) return <AlertTriangle {...iconProps} />;
         if (isLocked) return <Lock {...iconProps} />;
         return <LockKeyholeOpen {...iconProps} />;
@@ -68,7 +68,7 @@ export default function LockStatusCard() {
 
     return (
         <div style={styles.card}>
-            <div>
+            <div style={styles.textSide}>
                 <p style={styles.title}>Security Lock</p>
                 <h1 style={{
                     ...styles.status, 
@@ -79,7 +79,6 @@ export default function LockStatusCard() {
                 <p style={styles.time}>Updated: {lastTimeDisplay}</p>
             </div>
             
-            {/* Outline only - No background color */}
             <div style={styles.iconContainer}>
                 {renderIcon()}
             </div>
@@ -92,16 +91,41 @@ const styles = {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        fontFamily: "'Poppins', sans-serif"
+        fontFamily: "'Poppins', sans-serif",
+        width: '100%',
+        boxSizing: 'border-box',
+        padding: '4px 0' // Slight breathing room
     },
-    title: { margin: 0, color: '#64748b', fontSize: '0.9rem', fontWeight: '500' },
-    status: { fontSize: '1.4rem', fontWeight: '700' },
-    time: { margin: 0, color: '#94a3b8', fontSize: '0.8rem' },
+    textSide: {
+        flex: 1,
+        minWidth: 0 // Prevents text overflow issues in flex
+    },
+    title: { 
+        margin: 0, 
+        color: '#64748b', 
+        fontSize: 'clamp(0.75rem, 2vw, 0.9rem)', // Scales between 0.75rem and 0.9rem
+        fontWeight: '500',
+        whiteSpace: 'nowrap'
+    },
+    status: { 
+        fontSize: 'clamp(1.1rem, 4vw, 1.4rem)', // Scales between 1.1rem and 1.4rem
+        fontWeight: '700',
+        margin: '2px 0',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+    },
+    time: { 
+        margin: 0, 
+        color: '#94a3b8', 
+        fontSize: 'clamp(0.65rem, 1.5vw, 0.8rem)', 
+        whiteSpace: 'nowrap'
+    },
     iconContainer: { 
-        padding: '10px',
+        paddingLeft: '10px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
-        // Background removed as requested
+        justifyContent: 'center',
+        flexShrink: 0 // Icon won't get squished
     }
 };
