@@ -35,7 +35,6 @@ const humiditySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
     // Battery fields
     batt_v: {
       type: Number,
