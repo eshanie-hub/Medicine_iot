@@ -35,35 +35,52 @@
       "stable": "No motion detected. Ideal transport conditions with zero risk.",
       "moderate_vibration": "Slight movement detected within acceptable limits. Medicine is safe.",
       "high_vibration": "High vibrations detected. Transport environment is unstable.",
-      "critical_vibration": "Critical impact detected exceeding safety limits. Immediate inspection required.",
+      "critical_shock": "Critical impact detected exceeding safety limits. Immediate inspection required.",
+      "medicine_verdict": {
+        "safe": "Medicine transported within acceptable vibration limits.",
+        "use_with_caution": "Significant vibration detected. Inspect before use.",
+        "compromised": "Critical shock detected. Medicine safety cannot be guaranteed."
+      },
       "risk_levels": {
-        "low": "Up to 20%: Smooth transportation, medicine likely in perfect condition.",
-        "medium": "20% to 60%: Several rough patches encountered, visual inspection recommended.",
-        "high": "Above 60%: Significant mechanical stress, lab verification required before distribution."
+        "low": "0-29%: Smooth transportation, medicine likely in perfect condition.",
+        "moderate": "30-69%: Several rough patches encountered, visual inspection recommended.",
+        "high": "70-100%: Significant mechanical stress, lab verification required before distribution."
       }
     },
     "schema": {
       "Motionlogs": {
-        "Time": "datetime",
-        "Total_g": "float",
-        "Net_g": "float",
-        "Status": "string",
-        "Alert": "string",
+        "time": "datetime",
+        "net_g": "float",
+        "total_g": "float",
+        "status": "string - rule-based: Stable / Moderate Vibration / High Vibration / Critical Shock",
+        "ml_class": "string - AI classification: Stable / Moderate Vibration / High Vibration / Critical Shock",
+        "ml_conf": "float - AI confidence percentage",
+        "risk_score": "float - current reading risk percentage",
+        "rolling_risk": "float - overall trip risk percentage used for gauge needle",
+        "alert": "boolean",
         "createdAt": "datetime",
         "updatedAt": "datetime"
       }
     },
     "dashboard": {
-      "vibration_alert": {
-        "description": "Status warning triggered by rough transport conditions such as potholes or sudden braking.",
-        "location": "Middle card in the left panel (Vibration section)"
+      "motion_logs_table": {
+        "description": "Logs every motion event showing time, net_g, total_g, and rule-based status.",
+        "fields_used": ["time", "net_g", "total_g", "status"],
+        "location": "Bottom-left under the Motion tab"
       },
-      "vibration_logs": {
-        "description": "Detailed log of motion events including time, net g, total g, and status.",
-        "location": "Bottom-left quadrant of the dashboard"
+      "current_status": {
+        "description": "The single most recent vibration reading showing live status.",
+        "fields_used": ["time", "status", "net_g", "total_g", "ml_class", "ml_conf", "risk_score", "rolling_risk"],
+        "location": "Vibration card in the top status bar"
       },
-      "vibration_risk_prediction": {
-        "description": "Predictive gauge indicating likelihood of medicine compromise during transport.",
+      "transport_risk_chart": {
+        "description": "Gauge showing overall trip risk %. Displays AI classification, confidence, current risk score, rolling risk, and medicine verdict.",
+        "fields_used": ["ml_class", "ml_conf", "risk_score", "rolling_risk"],
+        "verdict_logic": {
+          "compromised": "critical_count > 0 OR rolling_risk >= 70",
+          "use_with_caution": "high_count > 2 OR rolling_risk >= 40",
+          "safe": "all other cases"
+        },
         "location": "Bottom-right quadrant of the dashboard"
       }
     }

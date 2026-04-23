@@ -22,11 +22,59 @@ const functions = {
         if (card_id) query.card_id = card_id;
         return await AccessLog.find(query).sort({ receivedAt: -1 }).limit(limit);
     },
-    getMotionLogs: async ({ alert, status, limit = 5 }) => {
+    getMotionLogs: async ({ status, date, limit = 50 }) => {
         const query = {};
-        if (alert !== undefined) query.alert = alert;
         if (status) query.status = status;
+        if (date) {
+            const start = new Date(date);
+            const end = new Date(date);
+            end.setDate(end.getDate() + 1);
+            query.time = { $gte: start.toISOString(), $lt: end.toISOString() };
+        }
         return await MotionLog.find(query).sort({ time: -1 }).limit(limit);
+    },
+
+    getCurrentStatus: async () => {
+        return await MotionLog.findOne({}).sort({ time: -1 });
+    },
+
+    getRiskChart: async () => {
+        const logs = await MotionLog.find({}).sort({ time: -1 }).limit(200);
+        if (!logs.length) return { error: "No data" };
+
+        const total  = logs.length;
+        const latest = logs[0];
+        const counts = { stable: 0, moderate: 0, high: 0, critical: 0 };
+
+        logs.forEach(l => {
+            if (l.ml_class === 'Stable')             counts.stable++;
+            if (l.ml_class === 'Moderate Vibration') counts.moderate++;
+            if (l.ml_class === 'High Vibration')     counts.high++;
+            if (l.ml_class === 'Critical Shock')     counts.critical++;
+        });
+
+        const verdict = counts.critical > 0 || (latest.rolling_risk >= 70)
+            ? 'Compromised'
+            : counts.high > 2 || (latest.rolling_risk >= 40)
+            ? 'Use with Caution'
+            : 'Safe';
+
+        return {
+            current_ml_class:     latest.ml_class,
+            current_ml_conf:      latest.ml_conf,
+            current_risk_score:   latest.risk_score,
+            current_rolling_risk: latest.rolling_risk,
+            medicine_verdict:     verdict,
+            total_readings:       total,
+            stable_pct:           Math.round((counts.stable   / total) * 100),
+            moderate_count:       counts.moderate,
+            high_count:           counts.high,
+            critical_count:       counts.critical,
+            worst_event:          counts.critical > 0 ? 'Critical Shock'
+                                : counts.high     > 0 ? 'High Vibration'
+                                : counts.moderate > 0 ? 'Moderate Vibration'
+                                : 'Stable'
+        };
     }
 };
 
@@ -41,9 +89,13 @@ exports.handleChat = async (req, res) => {
             ${JSON.stringify(dataDictionary, null, 2)}
             
             RULES:
-            - If a user asks about "vibration risk," refer to the percentage thresholds in the dictionary.
-            - If "Critical vibration" is found in the logs, emphasize immediate inspection.
-            - Use the tool calls to fetch real-time data from MongoDB before answering database-related questions.`
+            - Always call the right tool before answering.
+            - Logs table questions (history, g-force, date, past readings) → getMotionLogs
+            - Current / latest / recent status → getCurrentStatus
+            - Risk chart, gauge, medicine condition, AI class, verdict → getRiskChart
+            - Security / RFID / access → getSecurityLogs
+            - Risk levels: 0-29% Low, 30-69% Moderate, 70-100% High
+            - If critical shock found, always recommend immediate inspection.`
         });
 
         // Initialize chat with function tool definitions
@@ -64,19 +116,30 @@ exports.handleChat = async (req, res) => {
                     },
                     {
                         name: "getMotionLogs",
-                        description: "Fetch vibration and stability data. Use for questions about transport safety and rough handling.",
+                        description: "Fetch motion logs table data. Use for history, past readings, g-force values, date filtering.",
                         parameters: {
                             type: "OBJECT",
                             properties: {
-                                alert: { type: "boolean" },
-                                status: { type: "string", enum: ["Stable", "Moderate vibration", "High vibration", "Critical vibration"] },
-                                limit: { type: "number" }
+                                status: { type: "string", enum: ["Stable", "Moderate Vibration", "High Vibration", "Critical Shock"] },
+                                date:   { type: "string", description: "Date in YYYY-MM-DD format" },
+                                limit:  { type: "number" }
                             }
                         }
+                    },
+                    {
+                        name: "getCurrentStatus",
+                        description: "Get the latest single vibration reading. Use for current, recent, or now questions.",
+                        parameters: { type: "OBJECT", properties: {} }
+                    },
+                    {
+                        name: "getRiskChart",
+                        description: "Get transport risk chart data. Use for gauge, rolling risk, medicine verdict, ml_class, AI confidence, overall trip safety questions.",
+                        parameters: { type: "OBJECT", properties: {} }
                     }
                 ]
             }]
         });
+
 
         const result = await chat.sendMessage(message);
         const response = result.response;
