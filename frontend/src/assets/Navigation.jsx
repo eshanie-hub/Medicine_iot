@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-
 const navStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
 
@@ -25,19 +24,19 @@ const navStyles = `
 
   .logo-circle {
     background: white;
-    width: 40px; /* Slightly larger to showcase the logo */
-    height: 40px;
+    width: 35px;
+    height: 35px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden; /* Ensures image doesn't bleed past the circle */
+    overflow: hidden;
   }
 
   .logo-img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Maintains aspect ratio while filling the circle */
+    object-fit: cover;
   }
 
   .brand-name {
@@ -50,16 +49,38 @@ const navStyles = `
     background-color: #3182ce;
     color: white;
     border: none;
-    padding: 6px 35px;
+    padding: 6px 25px;
     border-radius: 6px;
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
+    white-space: nowrap;
   }
 
   .btn-logout:hover {
     background-color: #2b6cb0;
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 480px) {
+    .nav-container {
+      padding: 0 15px; /* Less horizontal padding */
+    }
+
+    .brand-name {
+      font-size: 1rem; /* Smaller font for smaller screens */
+    }
+
+    .btn-logout {
+      padding: 5px 15px; /* Narrower button */
+      font-size: 0.85rem;
+    }
+
+    .logo-circle {
+      width: 30px;
+      height: 30px;
+    }
   }
 `;
 
@@ -67,7 +88,7 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Add logout logic (e.g., localStorage.clear())
+    // Optional: localStorage.clear();
     navigate('/login');
   };
 

@@ -9,109 +9,159 @@ import HumLastAlert from '../charts/humidity/Last_Alert';
 import TemperatureLogs from '../charts/temperature/Logs';
 import HumidityLogs from '../charts/humidity/Logs';
 import Chatbot from './Chatbot';
+import Wifi from '../charts/wifi/Last_Alert';
 
 const systemStyles = `
+  html, body, #root {
+    /* Allow page to grow naturally */
+    height: auto;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #f8fafc;
+    /* This is key: let the browser handle the main vertical scroll */
+    overflow-y: visible !important; 
+    overflow-x: hidden;
+  }
+
   .system-root {
-    height: calc(100vh - 60px);
-    padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    /* min-height ensures background covers full screen, but doesn't trap scroll */
+    min-height: 100vh;
   }
 
   .sensor-row {
     display: grid;
-    grid-template-columns: repeat(5, 1fr); /* UI Kept exactly the same */
-    gap: 15px;
-    height: 120px;
+    grid-template-columns: 1fr; 
+    gap: 12px;
+    width: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .sensor-row { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  }
+
+  @media (min-width: 1024px) {
+    .sensor-row { grid-template-columns: repeat(5, 1fr); gap: 16px; }
   }
 
   .sensor-box {
     background: white;
-    border-radius: 15px;
-    padding: 15px;
+    border-radius: 14px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    min-height: 100px;
+    box-sizing: border-box;
   }
 
-  .status-label { font-size: 0.8rem; color: #64748b; }
-  .status-value { font-size: 1.4rem; font-weight: 700; color: #1e3a6e; }
-  .status-sub { font-size: 0.75rem; color: #a0aec0; }
-  .fan-btn { font-size: 0.7rem; color: #3182ce; margin-top: 5px; cursor: pointer; }
-
-
   .bottom-split {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1.2fr;
-    gap: 15px;
-    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .bottom-split {
+      flex-direction: row;
+      gap: 20px;
+      /* Equal height logs and charts on desktop */
+      align-items: stretch; 
+    }
   }
 
   .panel {
     background: white;
-    border-radius: 15px;
-    padding: 20px;
-    overflow-y: auto;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
   }
-      /* Vibration Status Colors */
-  .status-critical { color: #e53e3e !important; font-weight: 800; }
-  .status-warning { color: #dd6b20 !important; }
-  .status-stable { color: #3182ce!important; font-weight: 700; }
 
-  .log-table { width: 100%; border-collapse: collapse; text-align: left; }
-  .log-table td { padding: 10px 5px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+  /* ── DUAL SCROLL LOGIC ── */
+  .panel-logs {
+    /* Fixed height forces the log-container to use its own scrollbar */
+    height: 500px; 
+    overflow: hidden; 
+  }
 
+  @media (max-width: 1023px) {
+    .panel-logs {
+      /* Slightly shorter on mobile so it doesn't take the whole screen */
+      height: 500px; 
+      margin-bottom: 8px;
+    }
+  }
+
+  .log-container {
+    width: 100%;
+    /* This allows the logs to scroll within the 500px panel */
+    overflow-y: auto; 
+    overflow-x: auto; 
+    flex-grow: 1;
+    padding-right: 4px;
+    /* Ensures scrolling is smooth on mobile */
+    -webkit-overflow-scrolling: touch; 
+  }
+
+  /* Custom Scrollbar */
+  .log-container::-webkit-scrollbar { width: 6px; height: 6px; }
+  .log-container::-webkit-scrollbar-track { background: #f1f5f9; }
+  .log-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+  /* ── Tab Header ── */
   .tab-header {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 8px;
+    margin-bottom: 16px;
     border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 10px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-shrink: 0; 
   }
 
   .tab-btn {
-    padding: 6px 12px;
+    padding: 8px 16px;
     border-radius: 8px;
-    border: none;
-    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    background: white;
     color: #64748b;
     cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s;
+    font-size: 0.85rem;
+    font-weight: 600;
   }
 
   .tab-btn.active {
     background: #2d82cc;
     color: white;
+    border-color: #2d82cc;
   }
 
-  .panel-title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 15px;
-    color: #1e3a6e;
-  }
+  .panel-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; color: #1e3a6e; }
+  .chart-img { width: 100%; height: auto; border-radius: 10px; }
 `;
 
 export default function System() {
-
-
-  //  Initialize state to track active log
   const [activeLog, setActiveLog] = useState('Security');
 
-  // render the correct component
   const renderLogTable = () => {
-    switch(activeLog) {
-      case 'Security': return <SecurityLogs />;
-      case 'Motion': return <MotionLogs />;
+    switch (activeLog) {
+      case 'Security':    return <SecurityLogs />;
+      case 'Motion':      return <MotionLogs />;
       case 'Temperature': return <TemperatureLogs />;
-      case 'Humidity': return <HumidityLogs />;
-      default: return null;
-      
-      
+      case 'Humidity':    return <HumidityLogs />;
+      default:            return null;
     }
   };
 
@@ -121,41 +171,18 @@ export default function System() {
       <Navbar />
       <div className="system-root">
         <div className="sensor-row">
-          
-          {/* Card 1: Security */}
-          <div className="sensor-box">
-            <LockStatusCard />
-          </div>
-
-          {/* Card 2: Temperature */}
-          <div className="sensor-box">
-            <TempLastAlert />
-          </div>
-
-          {/* Card 3: Vibration  */}
-          <div className="sensor-box">
-            <LastAlert />
-          </div>
-
-          {/* Card 4: Humidity */}
-          <div className="sensor-box">
-            <HumLastAlert />
-          </div>
-
-          {/* Card 5: Wifi */}
-          <div className="sensor-box">
-            <span style={{fontSize: '0.8rem', color: '#64748b'}}>Wifi</span>
-            <span style={{fontSize: '1.3rem', fontWeight: 700, color: '#2d82cc'}}>Active</span>
-          </div>
-
+          <div className="sensor-box"><LockStatusCard /></div>
+          <div className="sensor-box"><TempLastAlert /></div>
+          <div className="sensor-box"><LastAlert /></div>
+          <div className="sensor-box"><HumLastAlert /></div>
+          <div className="sensor-box"><Wifi /></div>
         </div>
 
         <div className="bottom-split">
-          <div className="panel">
-            {/* 3. Tab Navigation */}
+          <div className="panel panel-logs">
             <div className="tab-header">
-              {['Security', 'Motion','Temperature','Humidity'].map((type) => (
-                <button 
+              {['Security', 'Motion', 'Temperature', 'Humidity'].map((type) => (
+                <button
                   key={type}
                   className={`tab-btn ${activeLog === type ? 'active' : ''}`}
                   onClick={() => setActiveLog(type)}
@@ -164,13 +191,18 @@ export default function System() {
                 </button>
               ))}
             </div>
-            
-            {/* 4. Dynamic Log Content */}
-            {renderLogTable()}
+            <div className="log-container">
+              {renderLogTable()}
+            </div>
           </div>
-          <div className="panel">
-            <h3>Sensor Live status line chart</h3>
-            <img src="https://i.imgur.com/GisLhOQ.png" style={{width: '100%', borderRadius: '10px'}} alt="Chart" />
+
+          <div className="panel panel-chart">
+            <h3 className="panel-title">Sensor Live Status</h3>
+            <img
+              src="https://i.imgur.com/GisLhOQ.png"
+              className="chart-img"
+              alt="Live Status Chart"
+            />
           </div>
         </div>
         <Chatbot />

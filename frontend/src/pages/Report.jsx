@@ -7,34 +7,72 @@ import MotionReport from '../charts/motion/MotionReport';
 import HumidityReport from '../charts/humidity/HumidityReport';
 
 const reportStyles = `
+  /* 1. Ensure the base HTML allows scrolling on mobile */
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    /* Remove 'overflow: hidden' to allow global scrolling on mobile */
+    overflow-y: auto; 
+    background-color: #f0f4f8;
+  }
+
   .report-root {
     background-color: #f0f4f8;
-    height: calc(100vh - 60px); /* Fits exactly below Navbar */
+    /* Use min-height so it grows with the cards */
+    min-height: calc(100vh - 60px); 
+    width: 100%;
     padding: 15px;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     box-sizing: border-box;
   }
 
   .report-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr; /* 2x2 grid to fill screen */
-    gap: 15px;
+    grid-template-columns: 1fr; /* Stack vertically by default */
+    gap: 20px;
     width: 100%;
-    height: 100%;
+    max-width: 1400px;
   }
 
   .report-card {
     background: white;
     border-radius: 20px;
-    padding: 15px;
+    padding: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    /* Give cards a fixed height on mobile so charts render properly */
+    height: 450px; 
+    min-height: 450px;
     overflow: hidden;
+  }
+
+  /* Desktop View - 1024px and up */
+  @media (min-width: 1024px) {
+    html, body {
+      overflow: hidden; /* Lock scroll on desktop for a dashboard feel */
+    }
+
+    .report-root {
+      height: calc(100vh - 60px);
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .report-grid {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      height: 100%;
+      gap: 15px;
+    }
+
+    .report-card {
+      height: 100%; /* Let grid control height on desktop */
+      min-height: 0;
+    }
   }
 
   .card-title {
@@ -42,88 +80,6 @@ const reportStyles = `
     font-weight: 600;
     color: #333;
     margin: 0 0 10px 0;
-  }
-
-  /* Table Styling */
-  .anomaly-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 5px;
-    flex: 1;
-  }
-
-  .table-header {
-    background: #f8fafc;
-    font-size: 0.75rem;
-    color: #64748b;
-    padding: 8px;
-    border-radius: 8px;
-    text-align: center;
-  }
-
-  .table-cell {
-    border: 1px solid #f1f5f9;
-    border-radius: 8px;
-    padding: 8px;
-    font-size: 0.8rem;
-    text-align: center;
-    background: white;
-  }
-
-  .detail-box {
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 5px;
-    font-size: 0.75rem;
-    line-height: 1.4;
-  }
-
-  /* Image/Chart Containers */
-  .chart-container {
-    flex: 1;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-
-  .chart-img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-
-  /* Gauge Component */
-  .risk-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .gauge-svg { width: 180px; height: auto; }
-
-  .risk-value {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: #2d82cc;
-    margin-top: -15px;
-  }
-
-  .risk-status {
-    font-weight: 600;
-    color: #1e3a6e;
-    text-transform: uppercase;
-    font-size: 0.9rem;
-  }
-
-  .risk-footer {
-    margin-top: 10px;
-    font-size: 0.8rem;
-    color: #64748b;
   }
 `;
 
@@ -135,22 +91,18 @@ export default function Report() {
       <div className="report-root">
         <div className="report-grid">
 
-          {/* 1. Safety Anomalies */}
           <div className="report-card">
             <Security />
           </div>
 
-          {/* 2. Humidity Trend */}
           <div className="report-card">
             <HumidityReport />
           </div>
 
-          {/* 3. Temperature Trend */}
           <div className="report-card">
             <TempReport />
           </div>
 
-          {/* 4. Transport Risk Level */}
           <div className="report-card">
             <MotionReport />
           </div>

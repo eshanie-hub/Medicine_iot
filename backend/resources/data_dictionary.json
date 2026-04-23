@@ -3,15 +3,16 @@
     "meanings": {
       "open": "When the authorized RFID card is presented and the medicine box is locked, the box will open.",
       "locked": "When the authorized RFID card is presented and the medicine box is open, the box will lock.",
-      "denied": "An unauthorized RFID card is presented to the medicine box.",
-      "unusual_hours": "The medicine box was opened outside its normal time periods.",
-      "high_access": "The medicine box was opened more frequently than usual."
+      "unauthorized access": "An unauthorized RFID card is presented to the medicine box.",
+      "unusual hours": "The medicine box was opened outside its normal time periods.",
+      "normal": "Medicine box was opened by an authorized person."
     },
     "schema": {
       "Accesslogs": {
         "Timestamp": "datetime",
         "Card_id": "string",
         "Status": "string",
+        "anomaly": "string",
         "recievedAt": "datetime"
       }
     },

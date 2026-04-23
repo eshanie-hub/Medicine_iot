@@ -11,12 +11,20 @@ const Chatbot = () => {
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef(null);
 
-    // Auto-scroll to the bottom of the chat when new messages arrive or the window opens
     useEffect(() => {
         if (isOpen) {
             scrollRef.current?.scrollIntoView({ behavior: "smooth" });
         }
     }, [messages, isOpen]);
+
+    // Prevent body scroll when chat is open on mobile
+    useEffect(() => {
+        const isMobile = window.innerWidth <= 480;
+        if (isMobile) {
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -28,7 +36,6 @@ const Chatbot = () => {
         setIsLoading(true);
 
         try {
-            // Updated to use the chat route in your backend
             const response = await axios.post('http://localhost:5000/api/chat', { message: input });
             setMessages(prev => [...prev, { role: 'model', text: response.data.reply }]);
         } catch (error) {
@@ -50,7 +57,6 @@ const Chatbot = () => {
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 }
 
-                /* Minimized State (The Button) */
                 .chatbot-toggle-btn {
                     width: 60px;
                     height: 60px;
@@ -64,9 +70,8 @@ const Chatbot = () => {
                     transition: transform 0.2s ease;
                 }
 
-                /* Fix: Proportional icon sizing for the toggle button */
                 .chatbot-toggle-btn img {
-                    width: 65%; 
+                    width: 65%;
                     height: 65%;
                     object-fit: contain;
                 }
@@ -75,7 +80,7 @@ const Chatbot = () => {
                     transform: scale(1.05);
                 }
 
-                /* Expanded State (The Window) */
+                /* Desktop chat window */
                 .chatbot-container {
                     display: flex;
                     flex-direction: column;
@@ -93,6 +98,11 @@ const Chatbot = () => {
                     to { transform: translateY(0); opacity: 1; }
                 }
 
+                @keyframes slideUp {
+                    from { transform: translateY(100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+
                 .chatbot-header {
                     background-color: #4485d1;
                     padding: 15px;
@@ -101,6 +111,39 @@ const Chatbot = () => {
                     justify-content: space-between;
                     align-items: center;
                     cursor: pointer;
+                    flex-shrink: 0;
+                }
+
+                .chatbot-header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .chatbot-header span {
+                    font-size: 15px;
+                    font-weight: 600;
+                }
+
+                .close-btn {
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 18px;
+                    line-height: 1;
+                    transition: background 0.2s;
+                    flex-shrink: 0;
+                }
+
+                .close-btn:hover {
+                    background: rgba(255,255,255,0.35);
                 }
 
                 .bot-icon-circle {
@@ -112,9 +155,9 @@ const Chatbot = () => {
                     align-items: center;
                     justify-content: center;
                     overflow: hidden;
+                    flex-shrink: 0;
                 }
 
-                /* Fix: Proportional icon sizing for the header icon */
                 .bot-icon-circle img {
                     width: 70%;
                     height: 70%;
@@ -128,6 +171,7 @@ const Chatbot = () => {
                     display: flex;
                     flex-direction: column;
                     gap: 15px;
+                    -webkit-overflow-scrolling: touch;
                 }
 
                 .message {
@@ -135,6 +179,7 @@ const Chatbot = () => {
                     padding: 12px 16px;
                     font-size: 14px;
                     line-height: 1.5;
+                    word-break: break-word;
                 }
 
                 .message.model {
@@ -160,6 +205,7 @@ const Chatbot = () => {
                     display: flex;
                     align-items: center;
                     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+                    flex-shrink: 0;
                 }
 
                 .chat-input {
@@ -168,6 +214,8 @@ const Chatbot = () => {
                     outline: none;
                     font-size: 14px;
                     padding: 5px;
+                    background: transparent;
+                    min-width: 0;
                 }
 
                 .send-button {
@@ -177,6 +225,13 @@ const Chatbot = () => {
                     cursor: pointer;
                     display: flex;
                     align-items: center;
+                    padding: 4px;
+                    flex-shrink: 0;
+                }
+
+                .send-button:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
                 }
 
                 .loading-indicator {
@@ -185,23 +240,93 @@ const Chatbot = () => {
                     font-style: italic;
                     margin-left: 5px;
                 }
+
+                /* Mobile styles — full screen takeover */
+                @media (max-width: 480px) {
+                    .chatbot-wrapper {
+                        bottom: 16px;
+                        right: 16px;
+                    }
+
+                    .chatbot-container {
+                        position: fixed;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        width: 100%;
+                        height: 100dvh; /* dynamic viewport height — handles browser chrome */
+                        height: 100vh; /* fallback */
+                        border-radius: 0;
+                        animation: slideUp 0.3s ease-out;
+                    }
+
+                    .chatbot-header {
+                        padding: 16px 16px;
+                        padding-top: max(16px, env(safe-area-inset-top));
+                    }
+
+                    .message-area {
+                        padding: 16px;
+                        gap: 12px;
+                    }
+
+                    .message {
+                        font-size: 15px;
+                        max-width: 90%;
+                        padding: 10px 14px;
+                    }
+
+                    .input-container {
+                        margin: 0 12px;
+                        margin-bottom: max(12px, env(safe-area-inset-bottom));
+                        padding: 8px 12px;
+                    }
+
+                    .chat-input {
+                        font-size: 16px; /* prevents iOS zoom on focus */
+                    }
+
+                    .close-btn {
+                        width: 36px;
+                        height: 36px;
+                        font-size: 20px;
+                    }
+                }
+
+                /* Small phones */
+                @media (max-width: 360px) {
+                    .chatbot-header span {
+                        font-size: 14px;
+                    }
+
+                    .message {
+                        font-size: 14px;
+                    }
+                }
                 `}
             </style>
 
             <div className="chatbot-wrapper">
                 {!isOpen ? (
-                    /* Minimized Button View */
                     <div className="chatbot-toggle-btn" onClick={() => setIsOpen(true)}>
                         <img src={chatbot} alt="Open Chat" />
                     </div>
                 ) : (
-                    /* Full Chat Window View */
                     <div className="chatbot-container">
-                        <div className="chatbot-header" onClick={() => setIsOpen(false)}>
-                            <span>Mediport chatbot</span>
-                            <div className="bot-icon-circle">
-                                <img src={chatbot} alt="Bot Icon" />
+                        <div className="chatbot-header">
+                            <div className="chatbot-header-left">
+                                <div className="bot-icon-circle">
+                                    <img src={chatbot} alt="Bot Icon" />
+                                </div>
+                                <span>Mediport chatbot</span>
                             </div>
+                            <button
+                                className="close-btn"
+                                onClick={() => setIsOpen(false)}
+                                aria-label="Close chat"
+                            >
+                                ×
+                            </button>
                         </div>
 
                         <div className="message-area">

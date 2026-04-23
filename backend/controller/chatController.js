@@ -16,10 +16,12 @@ try {
 }
 
 const functions = {
-    getSecurityLogs: async ({ status, card_id, limit = 200 }) => {
+    getSecurityLogs: async ({ status, card_id, anomaly, receivedAt, limit = 200 }) => {
         const query = {};
         if (status) query.status = status;
         if (card_id) query.card_id = card_id;
+        if (anomaly) query.anomaly = anomaly; // Handle the anomaly field from your screenshot
+        if (receivedAt) query.receivedAt = new Date(receivedAt); // Convert string back to Date object
         return await AccessLog.find(query).sort({ receivedAt: -1 }).limit(limit);
     },
     getMotionLogs: async ({ alert, status, limit = 5 }) => {
@@ -32,15 +34,20 @@ const functions = {
 
 exports.handleChat = async (req, res) => {
     try {
+        const today = new Date().toISOString().split('T')[0];
         const { message } = req.body;
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.5-flash-lite",
             systemInstruction: `You are the MediPORT Assistant. Use the following project specifications to answer user queries accurately.
             
             PROJECT CONTEXT:
             ${JSON.stringify(dataDictionary, null, 2)}
+            Current Date: ${today}.
             
             RULES:
+            - To find the "Current Security State," call 'getSecurityLogs' with limit: 1. The 'status' of that log is the current state.
+            - "Unauthorized Access", "Unusual Hours" and "Normal" are considered security anomalies.
+            - If a user asks "What is the current lock state?", fetch the latest log and report its status (e.g., "Locked", "Unlocked", or "Denied").
             - If a user asks about "vibration risk," refer to the percentage thresholds in the dictionary.
             - If "Critical vibration" is found in the logs, emphasize immediate inspection.
             - Use the tool calls to fetch real-time data from MongoDB before answering database-related questions.`
@@ -52,12 +59,17 @@ exports.handleChat = async (req, res) => {
                 functionDeclarations: [
                     {
                         name: "getSecurityLogs",
-                        description: "Fetch RFID access logs. Use this for questions about box openings or unauthorized access.",
+                        description: "Fetch RFID access logs. Use this for questions about box openings, unauthorized access, or specific dates/times using the receivedAt parameter.",
                         parameters: {
                             type: "OBJECT",
                             properties: {
                                 status: { type: "string", enum: ["Unlocked", "Locked", "Denied"] },
                                 card_id: { type: "string" },
+                                anomaly: { type: "string", enum: ["None", "Unauthorized Access", "Unusual Hours"] },
+                                receivedAt: { 
+                                    type: "string", 
+                                    description: "Filter by a specific date or timestamp in ISO 8601 format. If the user says 'today', use the current date string." 
+                                },
                                 limit: { type: "number" }
                             }
                         }

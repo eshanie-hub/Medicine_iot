@@ -7,40 +7,119 @@ import TempLastAlert from '../charts/temperature/Last_Alert';
 import HumLastAlert from '../charts/humidity/Last_Alert';
 import RouteMap from '../assets/RouteMap';
 import Chatbot from './Chatbot';
+import Wifi from '../charts/wifi/Last_Alert';
 
-// Initialize Socket outside to prevent multiple connections
 const socket = io("http://localhost:5000");
 
 const pageStyles = `
-  .dashboard-root { background-color: #f0f4f8; height: calc(100vh - 60px); padding: 15px; display: flex; gap: 15px; }
-  .sidebar { width: 250px; display: flex; flex-direction: column; gap: 10px; }
-  .sidebar-card { background: white; border-radius: 12px; padding: 12px 18px; flex: 1; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-  .map-container { flex: 1; background: white; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; text-align: center; }
-  .route-btn { border: none; border-radius: 12px; padding: 10px 16px; font-weight: 700; cursor: pointer; color: white; min-width: 125px; transition: 0.2s; }
-  .route-btn.start { background: #16a34a; }
-  .route-btn.end { background: #dc2626; }
-  
-  /* Popup Styles */
-  .alert-popup {
-    position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
-    background: white; padding: 25px; border-radius: 15px; z-index: 9999;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 3px solid #1e3a6e; text-align: center;
-    animation: slideDown 0.3s ease-out;
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
   }
-  @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 100px; opacity: 1; } }
-  .btn-yes { padding: 10px 25px; background: #16a34a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-  .btn-no { padding: 10px 25px; background: #64748b; color: white; border: none; border-radius: 8px; cursor: pointer; }
 
-  .status-label { font-size: 0.8rem; color: #64748b; }
-  .status-value { font-size: 1.4rem; font-weight: 700; color: #1e3a6e; }
-  .status-sub { font-size: 0.75rem; color: #a0aec0; }
-  
-      /* Vibration Status Colors */
-  .status-critical { color: #e53e3e !important; font-weight: 800; }
-  .status-warning { color: #dd6b20 !important; }
-  .status-stable { color: #3182ce!important; font-weight: 700; }
+  .dashboard-root { 
+    background-color: #f0f4f8; 
+    height: calc(100vh - 60px); 
+    display: flex; 
+    flex-direction: column; 
+    padding: 10px;
+    gap: 10px;
+    box-sizing: border-box;
+  }
 
+  /* Sidebar: Vertical stack */
+  .sidebar { 
+    display: flex;
+    flex-direction: column; 
+    gap: 10px;
+    overflow-y: auto;
+    flex: 0 0 40%; /* Mobile height */
+  }
+
+  .sidebar-card { 
+    background: white; 
+    border-radius: 12px; 
+    padding: 15px; 
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 1px solid transparent;
+  }
+
+  /* Laptop/Desktop View Fixes */
+  @media (min-width: 1024px) {
+    .dashboard-root { 
+      flex-direction: row; 
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .sidebar { 
+      width: 320px; 
+      flex: 0 0 auto;
+      height: 100%;
+      overflow: hidden; /* Prevent double scrollbars */
+      justify-content: space-between; /* Distributes cards to fill the gap */
+    }
+
+    .sidebar-card {
+      flex: 1; /* Makes cards grow to fill available height */
+      margin-bottom: 0;
+      max-height: 18%; /* Keeps them proportional as seen in image_481f3d.jpg */
+    }
+  }
+
+  .map-container { 
+    flex: 1; 
+    background: white; 
+    border-radius: 20px; 
+    padding: 20px; 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden;
+    min-height: 0; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+
+  .map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .map-wrapper { 
+    flex: 1; 
+    border-radius: 15px; 
+    overflow: hidden; 
+    position: relative;
+    border: 1px solid #eef2f6;
+  }
+
+  .route-btn { 
+    border: none; 
+    border-radius: 8px; 
+    padding: 10px 24px; 
+    font-weight: 700; 
+    cursor: pointer; 
+    color: white; 
+    background: #dc2626; /* Match End Route color in image_481f3d.jpg */
+    transition: transform 0.1s;
+  }
   
+  .route-btn:active { transform: scale(0.98); }
+
+  .alert-popup {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: white; padding: 25px; border-radius: 15px; z-index: 9999;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 3px solid #1e3a6e; 
+    width: 85%; max-width: 380px; text-align: center;
+  }
 `;
 
 export default function Driver() {
@@ -50,22 +129,13 @@ export default function Driver() {
 
   useEffect(() => {
     fetchCurrentRoute();
-
-    // Listen for Lock Request from Backend
-    socket.on("requestLockUI", () => {
-        setShowLockPopup(true);
-    });
-
-    // ADD THIS: Hide popup if locked via RFID
-    socket.on("clearLockUI", () => {
-        setShowLockPopup(false);
-    });
-
+    socket.on("requestLockUI", () => setShowLockPopup(true));
+    socket.on("clearLockUI", () => setShowLockPopup(false));
     return () => {
         socket.off("requestLockUI");
         socket.off("clearLockUI");
     };
-}, []);
+  }, []);
 
   const fetchCurrentRoute = async () => {
     try {
@@ -76,9 +146,7 @@ export default function Driver() {
   };
 
   const handleLockResponse = (choice) => {
-    if (choice === "yes") {
-        socket.emit("uiLockResponse", "yes");
-    }
+    if (choice === "yes") socket.emit("uiLockResponse", "yes");
     setShowLockPopup(false);
   };
 
@@ -101,45 +169,56 @@ export default function Driver() {
     <>
       <style>{pageStyles}</style>
       
-      {/* 🔒 INTERACTIVE SECURITY ALERT POPUP */}
       {showLockPopup && (
         <div className="alert-popup">
           <h3 style={{ color: '#1e3a6e', margin: '0 0 10px 0' }}>📦 Box Closed</h3>
-          <p>The MediPORT lid is closed. Would you like to lock the box now?</p>
+          <p style={{ color: '#64748b' }}>The MediPORT lid is closed. Lock the box now?</p>
           <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '20px' }}>
-            <button className="btn-yes" onClick={() => handleLockResponse("yes")}>Yes, Lock</button>
-            <button className="btn-no" onClick={() => handleLockResponse("no")}>Not Now</button>
+            <button 
+              style={{padding: '10px 20px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer'}} 
+              onClick={() => handleLockResponse("yes")}
+            >Yes, Lock</button>
+            <button 
+              style={{padding: '10px 20px', background: '#64748b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer'}} 
+              onClick={() => handleLockResponse("no")}
+            >Not Now</button>
           </div>
         </div>
       )}
 
       <Navbar />
+      
       <div className="dashboard-root">
         <aside className="sidebar">
           <div className="sidebar-card"><LockStatusCard /></div>
           <div className="sidebar-card"><TempLastAlert /></div>
           <div className="sidebar-card"><LastAlert /></div>
           <div className="sidebar-card"><HumLastAlert /></div>
-          <div className="sidebar-card">
-            <span style={{ fontSize: '0.8rem', color: '#718096' }}>System Status</span>
-            <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#16a34a' }}>Online</span>
-          </div>
+          <div className="sidebar-card"><Wifi/></div>
         </aside>
 
         <main className="map-container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+          <div className="map-header">
             <div style={{ textAlign: 'left' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Route Optimization</h2>
-              <span style={{ color: '#64748b' }}>{activeRoute ? `Active ID: ${activeRoute.route_id}` : 'No active route'}</span>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#1e293b', fontWeight: '800' }}>Route Optimization</h2>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
+                {activeRoute ? `Active ID: ${activeRoute.route_id}` : 'No active route'}
+              </p>
             </div>
-            <button className={`route-btn ${activeRoute ? 'end' : 'start'}`} onClick={handleRouteToggle} disabled={loadingRoute}>
-              {loadingRoute ? 'Waiting...' : activeRoute ? 'End Route' : 'Start Route'}
+            <button 
+              className="route-btn" 
+              onClick={handleRouteToggle} 
+              disabled={loadingRoute}
+            >
+              {loadingRoute ? '...' : activeRoute ? 'End Route' : 'Start Route'}
             </button>
           </div>
-          <div style={{ flex: 1, borderRadius: '25px', overflow: 'hidden' }}>
+          
+          <div className="map-wrapper">
             <RouteMap activeRoute={activeRoute} />
           </div>
         </main>
+        
         <Chatbot />
       </div>
     </>
