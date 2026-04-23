@@ -42,4 +42,21 @@ router.get("/latest", async (req, res) => {
   }
 });
 
+// GET /api/humidity/battery?limit=50
+router.get('/battery', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const logs = await HumidityLog.find(
+      {},  // ← no filter, fetch all
+      { batt_v: 1, batt_pct: 1, timestamp: 1, createdAt: 1, box_id: 1 }
+    )
+    .sort({ createdAt: -1 })
+    .limit(limit);
+
+    res.json(logs.reverse());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
