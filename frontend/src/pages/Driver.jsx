@@ -115,36 +115,9 @@ const pageStyles = `
       overflow: hidden;
     }
 
-    /* Scale only text elements, not SVGs */
-    .sidebar-card p,
-    .sidebar-card span,
-    .sidebar-card h1,
-    .sidebar-card h2,
-    .sidebar-card h3,
-    .sidebar-card h4,
-    .sidebar-card h5,
-    .sidebar-card h6,
-    .sidebar-card label {
-      font-size: 0.90em !important;
-      line-height: 1.3 !important;
-      white-space: nowrap;
-    }
+    
 
-    /* Smaller "Updated: ..." timestamp — targets last paragraph/span in each card
-       and any element whose class contains time-related keywords */
-    .sidebar-card p:last-of-type,
-    .sidebar-card *[class*="updated"],
-    .sidebar-card *[class*="timestamp"],
-    .sidebar-card *[class*="time"],
-    .sidebar-card *[class*="date"],
-    .sidebar-card *[class*="last"] {
-      font-size: 0.68em !important;
-      color: #94a3b8 !important;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.2 !important;
-    }
+   
 
     /* Preserve icon sizes */
     .sidebar-card svg {
