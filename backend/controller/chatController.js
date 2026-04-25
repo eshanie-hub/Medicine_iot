@@ -374,7 +374,7 @@ exports.handleChat = async (req, res) => {
         const { message } = req.body;
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash-lite",
+            model: "gemini-2.5-flash",
             systemInstruction: `You are the MediPORT Assistant. Use the following project specifications to answer user queries accurately.
 
 PROJECT CONTEXT:
@@ -493,7 +493,7 @@ TOP-LEVEL ANSWER STYLE:
                     },
                     {
                         name: "getMotionLogs",
-                        description: "Fetch motion logs table data. Use for history, past readings, g-force values, date filtering.",
+                        description: "Fetch motion logs table data. Use this for questions about vibration status level on specific dates/time using.",
                         parameters: {
                             type: "OBJECT",
                             properties: {

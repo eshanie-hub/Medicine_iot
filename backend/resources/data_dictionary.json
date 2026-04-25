@@ -71,8 +71,8 @@
       },
       "current_status": {
         "description": "The single most recent vibration reading showing live status.",
-        "fields_used": ["time", "status", "net_g", "total_g", "ml_class", "ml_conf", "risk_score", "rolling_risk"],
-        "location": "Vibration card in the top status bar"
+        "fields_used": ["time", "status"],
+        "location": "Vibration card in the roght side third status card that shows the time and the current status"
       },
       "transport_risk_chart": {
         "description": "Gauge showing overall trip risk %. Displays AI classification, confidence, current risk score, rolling risk, and medicine verdict.",
