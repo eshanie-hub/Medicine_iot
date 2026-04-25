@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const AccessLog = require('../mongodb/security');
 const MotionLog = require('../mongodb/motion');
 const TemperatureLog = require("../mongodb/temperature");
+const HumidityLog = require("../mongodb/humidity");
 const fs = require('fs');
 const path = require('path');
 
@@ -232,7 +233,139 @@ const functions = {
         return await TemperatureLog.find(query)
             .sort({ createdAt: -1 })
             .limit(limit);
-    }
+    },
+    // =========================
+    // HUMIDITY TOOLS
+    // =========================
+
+    getHumidityLogs: async ({
+        route_id,
+        hum_status,
+        fan,
+        date,
+        limit = 100,
+    }) => {
+        const query = {};
+
+        if (route_id) query.route_id = route_id;
+        if (hum_status) query.hum_status = hum_status;
+        if (fan) query.fan = fan;
+
+        if (date) {
+            const start = new Date(`${date}T00:00:00.000Z`);
+            const end = new Date(`${date}T23:59:59.999Z`);
+
+            query.timestamp = {
+                $gte: start.toISOString(),
+                $lte: end.toISOString(),
+            };
+        }
+
+        return await HumidityLog.find(query).sort({ createdAt: -1 }).limit(limit);
+    },
+
+    getCurrentHumidity: async ({ route_id }) => {
+        const query = {};
+        if (route_id) query.route_id = route_id;
+
+        return await HumidityLog.findOne(query).sort({ createdAt: -1 });
+    },
+
+    getHumiditySummary: async ({ route_id, date }) => {
+        const query = {};
+
+        if (route_id) query.route_id = route_id;
+
+        if (date) {
+            const start = new Date(`${date}T00:00:00.000Z`);
+            const end = new Date(`${date}T23:59:59.999Z`);
+
+            query.timestamp = {
+                $gte: start.toISOString(),
+                $lte: end.toISOString(),
+            };
+        }
+
+        const logs = await HumidityLog.find(query)
+            .sort({ createdAt: -1 })
+            .limit(300);
+
+        if (!logs.length) return { error: "No humidity data" };
+
+        const latest = logs[0];
+
+        let high = 0, low = 0, normal = 0, critical = 0;
+
+        let minHum = Infinity;
+        let maxHum = -Infinity;
+        let sumHum = 0;
+        let validCount = 0;
+
+        logs.forEach(l => {
+            const h = Number(l.hum);
+
+            if (l.hum_status === "HIGH") high++;
+            else if (l.hum_status === "LOW") low++;
+            else if (l.hum_status === "NORMAL") normal++;
+            else if (l.hum_status === "CRITICAL") critical++;
+
+            if (!isNaN(h)) {
+                minHum = Math.min(minHum, h);
+                maxHum = Math.max(maxHum, h);
+                sumHum += h;
+                validCount++;
+            }
+        });
+
+        const avgHum = validCount ? Number((sumHum / validCount).toFixed(2)) : null;
+
+        let verdict = "Safe";
+        if (high > 0 || low > 0 || critical > 0) verdict = "Attention Needed";
+
+        return {
+            latest_humidity: latest.hum,
+            latest_status: latest.hum_status,
+            latest_timestamp: latest.timestamp,
+            fan: latest.fan,
+
+            total: logs.length,
+            normal_count: normal,
+            low_count: low,
+            high_count: high,
+            critical_count: critical,
+
+            min_humidity: validCount ? minHum : null,
+            max_humidity: validCount ? maxHum : null,
+            avg_humidity: avgHum,
+
+            safe_min: latest.hum_min ?? 30,
+            safe_max: latest.hum_max ?? 60,
+
+            verdict
+        };
+    },
+
+    getHumidityAnomalies: async ({ route_id, date, limit = 50 }) => {
+        const query = {
+            hum_status: { $in: ["LOW", "HIGH", "CRITICAL", "H-ERR"] }
+        };
+
+        if (route_id) query.route_id = route_id;
+
+        if (date) {
+            const start = new Date(`${date}T00:00:00.000Z`);
+            const end = new Date(`${date}T23:59:59.999Z`);
+
+            query.timestamp = {
+                $gte: start.toISOString(),
+                $lte: end.toISOString(),
+            };
+        }
+
+        return await HumidityLog.find(query)
+            .sort({ createdAt: -1 })
+            .limit(limit);
+    },
 };
 
 exports.handleChat = async (req, res) => {
@@ -292,6 +425,25 @@ TEMPERATURE RULES:
 - If T-ERR → mention sensor issue.
 - If threshold_breach or alert is true → mention that a safety/anomaly event occurred.
 - If fan is ON during abnormal temperature, explain that the cooling system is trying to respond.
+
+HUMIDITY RULES:
+- Safe humidity range is hum_min to hum_max (default 30%–60%).
+- NORMAL = safe
+- LOW = below safe range
+- HIGH = above safe range
+- CRITICAL = severe unsafe humidity condition
+- H-ERR = sensor error
+- fan ON = system reacting to abnormal condition
+
+- Current humidity → getCurrentHumidity
+- Humidity history → getHumidityLogs
+- Humidity trends → getHumiditySummary
+- Humidity anomalies → getHumidityAnomalies
+
+- When explaining humidity trends:
+  include latest value, min/max/avg humidity, abnormal counts, and fan activity.
+- If HIGH/LOW/CRITICAL → mention environmental risk to medicine.
+- If H-ERR → mention sensor issue.
 
 DASHBOARD GUIDANCE RULES:
 - When users ask where to find information, always refer to the UI layout.
@@ -410,6 +562,57 @@ TOP-LEVEL ANSWER STYLE:
                             properties: {
                                 route_id: { type: "string" },
                                 date: { type: "string", description: "YYYY-MM-DD" },
+                                limit: { type: "number" }
+                            }
+                        }
+                    },
+
+                    // =========================
+                    // HUMIDITY TOOLS
+                    // =========================
+                    {
+                        name: "getHumidityLogs",
+                        description: "Fetch humidity logs",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                route_id: { type: "string" },
+                                hum_status: { type: "string" },
+                                fan: { type: "string" },
+                                date: { type: "string" },
+                                limit: { type: "number" }
+                            }
+                        }
+                    },
+                    {
+                        name: "getCurrentHumidity",
+                        description: "Get latest humidity reading",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                route_id: { type: "string" }
+                            }
+                        }
+                    },
+                    {
+                        name: "getHumiditySummary",
+                        description: "Get humidity trend summary",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                route_id: { type: "string" },
+                                date: { type: "string" }
+                            }
+                        }
+                    },
+                    {
+                        name: "getHumidityAnomalies",
+                        description: "Get abnormal humidity readings",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                route_id: { type: "string" },
+                                date: { type: "string" },
                                 limit: { type: "number" }
                             }
                         }
