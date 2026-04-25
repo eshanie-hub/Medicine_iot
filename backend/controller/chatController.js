@@ -5,6 +5,7 @@ const TemperatureLog = require("../mongodb/temperature");
 const HumidityLog = require("../mongodb/humidity");
 const fs = require('fs');
 const path = require('path');
+GEMINI_API_KEY=AIzaSyDlNU3yZnkKrLEy7W9Aqdig5e09Chd2niQ
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
