@@ -5,7 +5,6 @@ const TemperatureLog = require("../mongodb/temperature");
 const HumidityLog = require("../mongodb/humidity");
 const fs = require('fs');
 const path = require('path');
-GEMINI_API_KEY=AIzaSyDlNU3yZnkKrLEy7W9Aqdig5e09Chd2niQ
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -62,8 +61,8 @@ const functions = {
         const verdict = counts.critical > 0 || (latest.rolling_risk >= 70)
             ? 'Compromised'
             : counts.high > 2 || (latest.rolling_risk >= 40)
-            ? 'Use with Caution'
-            : 'Safe';
+                ? 'Use with Caution'
+                : 'Safe';
 
         return {
             current_ml_class: latest.ml_class,
@@ -77,8 +76,8 @@ const functions = {
             high_count: counts.high,
             critical_count: counts.critical,
             worst_event: counts.critical > 0 ? 'Critical Shock'
-                        : counts.high > 0 ? 'High Vibration'
-                        : counts.moderate > 0 ? 'Moderate Vibration'
+                : counts.high > 0 ? 'High Vibration'
+                    : counts.moderate > 0 ? 'Moderate Vibration'
                         : 'Stable'
         };
     },
