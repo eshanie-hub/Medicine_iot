@@ -212,7 +212,7 @@ export default function System() {
             </div>
 
             {/* 🔋 NEW Battery Summary */}
-            <BatteryCard />
+            {/* <BatteryCard /> */}
 
             {/* 📈 Chart */}
             <div style={{ flex: 1 }}>
