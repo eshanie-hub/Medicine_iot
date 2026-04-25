@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { io } from 'socket.io-client';
 import { Activity } from 'lucide-react';
+
+const socket = io('http://localhost:5000', {
+  transports: ['websocket'],
+  autoConnect: true
+});
 
 const BRAND_BLUE  = '#3182ce';
 const WARN_RED    = '#ea0c0c';
@@ -25,8 +32,40 @@ export default function LastAlert() {
     return minutes < 60 ? `${minutes} min ago` : `${Math.floor(minutes / 60)} hours ago`;
   };
 
+  const fetchInitialData = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/motion/latest');
+      if (response.data) {
+        setMotionData({
+          status: response.data.status || 'Stable',
+          serverTimestamp: response.data.time || response.data.createdAt,
+          isOnline: true
+        });
+      }
+    } catch (err) {
+      console.error('Initial fetch failed:', err);
+      setMotionData(prev => ({ ...prev, isOnline: false }));
+    }
+  };
+
   useEffect(() => {
-    setMotionData({ status: 'Stable', serverTimestamp: new Date().toISOString(), isOnline: true });
+    fetchInitialData();
+
+    socket.on('connect',       () => setMotionData(prev => ({ ...prev, isOnline: true })));
+    socket.on('connect_error', () => setMotionData(prev => ({ ...prev, isOnline: false })));
+    socket.on('motionUpdate', (newData) => {
+      setMotionData({
+        status: newData.status || 'Active',
+        serverTimestamp: newData.time ? newData.time.replace(' ', 'T') : new Date(),
+        isOnline: true
+      });
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('connect_error');
+      socket.off('motionUpdate');
+    };
   }, []);
 
   useEffect(() => {
@@ -57,23 +96,24 @@ export default function LastAlert() {
           flex-wrap: nowrap;
           min-width: 0;
           width: 100%;
-          height: 100%;
-          box-sizing: border-box;
         }
         .last-alert-text {
           flex: 1;
           min-width: 0;
         }
         .last-alert-title {
-          margin: 0 0 6px;
+          margin: 0 0 2px;
           color: #64748b;
-          font-size: 1rem;
+          /* Fixed rem — does NOT shrink with vw or parent font-size overrides */
+          font-size: 0.82rem;
           font-weight: 500;
           line-height: 1.3;
+          white-space: nowrap;
         }
         .last-alert-status {
-          margin: 0 0 6px;
-          font-size: 1.6rem;
+          margin: 0 0 3px;
+          /* Fixed rem — readable at any card width */
+          font-size: 1.25rem;
           font-weight: 700;
           line-height: 1.2;
           white-space: nowrap;
@@ -83,8 +123,12 @@ export default function LastAlert() {
         .last-alert-time {
           margin: 0;
           color: #94a3b8;
-          font-size: 0.85rem;
+          /* Fixed rem — stays legible in 5-column tablet layout */
+          font-size: 0.72rem;
+          white-space: nowrap;
           line-height: 1.3;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .last-alert-icon {
           flex-shrink: 0;
@@ -109,7 +153,7 @@ export default function LastAlert() {
         </div>
 
         <div className="last-alert-icon">
-          <Activity size={36} color={statusColor} strokeWidth={2} />
+          <Activity size={28} color={statusColor} strokeWidth={2} />
         </div>
       </div>
     </>
